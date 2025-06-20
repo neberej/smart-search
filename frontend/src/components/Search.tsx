@@ -67,6 +67,8 @@ const Search: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) => 
     <div className="search-container">
       <div className="search-bar">
         <input
+          type="search"
+          autoComplete="on"
           className="search-input"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
