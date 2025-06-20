@@ -46,12 +46,14 @@ def search_endpoint(q: str = Query(..., min_length=1)):
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
-
 @app.post("/reindex")
 def reindex():
     from backend.indexer import run_indexing
-    run_indexing()
-    return {"status": "Indexing complete"}
+    count = run_indexing()
+    if count == 0:
+        return {"status": "No files to index."}
+    return {"status": f"{count} file{'s' if count != 1 else ''} indexed."}
+
 
 @app.get("/config")
 def get_config():

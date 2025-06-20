@@ -1,0 +1,83 @@
+.settings-container {
+  padding: 16px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.settings-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+}
+
+.input-label {
+  width: 33.33%;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a4a4a;
+}
+
+.input-field {
+  width: 66.67%;
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-field:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+.button-container {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  &.left {
+    justify-content: flex-start;
+  }
+}
+
+.save-button, .index-button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.save-button {
+  background-color: #2563eb;
+}
+
+.save-button:hover {
+  background-color: #1d4ed8;
+}
+
+.index-button {
+  background-color: #4b5563;
+}
+
+.index-button:hover:not(:disabled) {
+  background-color: #374151;
+}
+
+.index-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}

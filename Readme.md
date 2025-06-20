@@ -5,7 +5,7 @@ Index your files for quick search. Runs locally!
 
 # Setup
 
-There are two portions - backend which does heavy lifting creating summaries and embeddings and frontend which communicates using rest APIs.
+There are two portions - backend which does heavy lifting creating embeddings and frontend which communicates using rest APIs.
 
 ## Backend:
 
