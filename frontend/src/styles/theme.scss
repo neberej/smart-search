@@ -1,0 +1,27 @@
+$primary-color: #0070f3;
+$button-bg: #0070f3;
+$button-color: white;
+$input-border: #ccc;
+
+.button {
+  padding: 0.6em 1em;
+  background-color: $button-bg;
+  color: $button-color;
+  border: none;
+  margin-top: 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.input {
+  padding: 0.6em;
+  border: 1px solid $input-border;
+  border-radius: 5px;
+  width: 100%;
+  margin-bottom: 1em;
+  height: 40px;
+  font-size: 18px;
+}

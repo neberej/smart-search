@@ -1,0 +1,66 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.tabs {
+  margin-bottom: 20px;
+}
+
+.tab-list {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-bottom: 0.2px solid #eee;
+}
+
+.tab {
+  margin-right: 10px;
+}
+
+.tab button {
+  background: none;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  color: #555;
+  transition: color 0.3s ease, border-bottom-color 0.3s ease;
+}
+
+.tab.active button {
+  color: #007bff;
+  border-bottom: 2px solid #007bff;
+  font-weight: 500;
+}
+
+.tab button:hover {
+  color: #0056b3;
+}
+
+.tab-content {
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  min-height: 300px; // Ensure content area has minimum height
+}
+
+@media (max-width: 600px) {
+  .tab-list {
+    flex-direction: column;
+  }
+
+  .tab {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+
+  .tab button {
+    width: 100%;
+    text-align: left;
+  }
+}
+

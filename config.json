@@ -1,0 +1,8 @@
+{
+  "source_folder": "data",
+  "index_folder": "index",
+  "supported_extensions": [".pdf", ".txt", ".md", ".docx", ".json", ".jpg", ".png", ".html"],
+  "chunk_size": 500,
+  "chunk_overlap": 50,
+  "embedding_model": "all-MiniLM-L6-v2"
+}

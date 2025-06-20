@@ -1,0 +1,13 @@
+@import './theme.scss';
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+}
+
+hr {
+  margin: 20px 0 0 0;
+  color: red;
+  border: 0.2px solid #ddd;
+}
