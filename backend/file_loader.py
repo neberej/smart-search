@@ -1,5 +1,7 @@
 from pathlib import Path
 from backend.parsers import get_parser
+import os
+from datetime import datetime
 
 def load_files(config):
     folder = Path(config['source_folder'])
@@ -17,10 +19,14 @@ def load_files(config):
                 print(f"Indexing {file_path}")
                 text = parser.parse(file_path)
                 if text.strip():
-                    print(f"✓ Indexed: {file_path}")
+                    print(f"Indexed: {file_path}")
+                    stat = file_path.stat()
                     documents.append({
                         'filename': str(file_path),
-                        'text': text
+                        'text': text,
+                        'size_bytes': stat.st_size,
+                        'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                        'type': file_path.suffix.lower().lstrip(".")
                     })
             except Exception as e:
                 print(f"Error reading {file_path}: {e}")

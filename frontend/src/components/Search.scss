@@ -1,0 +1,25 @@
+
+.search-container {
+    ul {
+        padding: 0
+    }
+    li {
+        list-style: none;
+        border-bottom: 1px solid #ddd;
+        padding: 20px 0;
+    }
+    li .matched-text {
+        max-height: 210px;
+        overflow-y: auto;
+        margin: 5px 0;
+    }
+    h4 {
+
+    }
+    mark {
+        background-color: yellow;
+        padding: 0 2px;
+        border-radius: 2px;
+    }
+
+}
