@@ -4,7 +4,6 @@ from backend.chunker import chunk_documents
 from backend.embedder import embed_documents
 from backend.storage import save_index
 from backend.logger import get_logger
-
 logger = get_logger()
 
 def run_indexing():

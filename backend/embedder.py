@@ -1,3 +1,4 @@
+import os
 from sentence_transformers import SentenceTransformer
 
 def embed_documents(chunks, config):
@@ -6,7 +7,7 @@ def embed_documents(chunks, config):
     embeddings = model.encode(texts, convert_to_tensor=False)
     return [
         {
-            'filename': chunk['filename'],
+            'filename': os.path.abspath(chunk['filename']),
             'chunk_id': chunk['chunk_id'],
             'text': chunk['text'],
             'embedding': emb.tolist()

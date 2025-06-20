@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 import os, json
+import subprocess
+import platform
 from backend.config import load_config
 from backend.search import search
 
@@ -15,6 +17,9 @@ class SearchHit(BaseModel):
 class SearchResponse(BaseModel):
     results: list[dict]
 
+class FilePath(BaseModel):
+    path: str
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -26,8 +31,7 @@ def load_model():
     model = SentenceTransformer(config["embedding_model"])
 
 
-# inside /search endpoint
-@app.get("/search", response_model=SearchResponse)
+@app.get("/search", response_model=dict)
 def search_endpoint(q: str = Query(..., min_length=1)):
     config = load_config()
     index_path = os.path.join(config["index_folder"], "embeddings.json")
@@ -36,10 +40,12 @@ def search_endpoint(q: str = Query(..., min_length=1)):
 
     try:
         query_embedding = model.encode(q)
-        result = search(query_embedding, config)
-        return {"results": result}
+        result = search(query_embedding, config, query=q)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
 
 @app.post("/reindex")
 def reindex():
@@ -57,3 +63,16 @@ def update_config(new_config: dict):
     with open("config.json", "w") as f:
         json.dump(new_config, f, indent=2)
     return {"status": "Config updated"}
+
+@app.post("/open-folder")
+def open_folder(fp: FilePath):
+    folder = os.path.dirname(fp.path)
+    if platform.system() == "Darwin":  # macOS
+        subprocess.run(["open", folder])
+    elif platform.system() == "Windows":
+        subprocess.run(["explorer", folder])
+    elif platform.system() == "Linux":
+        subprocess.run(["xdg-open", folder])
+    else:
+        raise Exception("Unsupported OS")
+    return {"status": "opened"}
