@@ -1,3 +1,4 @@
+import re
 def chunk_documents(documents, config):
     chunk_size = config.get("chunk_size", 200)  # Smaller chunks
     chunk_overlap = config.get("chunk_overlap", 50)
