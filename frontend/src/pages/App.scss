@@ -15,11 +15,9 @@
   padding: 0;
   margin: 0;
   border-bottom: 0.2px solid #eee;
+  justify-content: space-between;
 }
 
-.tab {
-  margin-right: 10px;
-}
 
 .tab button {
   background: none;
@@ -29,12 +27,16 @@
   cursor: pointer;
   color: #555;
   transition: color 0.3s ease, border-bottom-color 0.3s ease;
+  position: relative;
 }
 
 .tab.active button {
   color: #007bff;
-  border-bottom: 2px solid #007bff;
   font-weight: 500;
+  margin-bottom: -0.5px;
+  &:not(.icon) {
+    border-bottom: 2px solid #007bff;
+  }
 }
 
 .tab button:hover {
@@ -64,3 +66,8 @@
   }
 }
 
+.tab button svg {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
