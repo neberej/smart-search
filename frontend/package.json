@@ -1,6 +1,7 @@
 {
   "name": "smart-search-frontend-ts",
   "version": "1.0.0",
+  "homepage": "./",
   "private": true,
   "dependencies": {
     "@types/react": "^18.0.0",
@@ -15,7 +16,8 @@
   },
   "scripts": {
     "start": "BROWSER=none react-scripts start",
-    "build": "react-scripts build"
+    "build": "react-scripts build",
+    "electron": "electron electron-dist/main.js"
   },
   "browserslist": {
     "production": [
@@ -28,5 +30,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "electron": "^36.5.0",
+    "electron-builder": "^26.0.12"
   }
 }

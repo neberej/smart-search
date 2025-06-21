@@ -6,4 +6,7 @@ npm-debug.log
 public
 node_modules
 build
+dist
 __pycache__
+electron-dist
+dist_electron

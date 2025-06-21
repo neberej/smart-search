@@ -1,0 +1,23 @@
+{
+  "appId": "com.smart.search",
+  "productName": "SmartSearch",
+  "directories": {
+    "app": "frontend/electron-dist",
+    "output": "dist_electron"
+  },
+  "files": [
+    "**/*"
+  ],
+  "extraMetadata": {
+    "main": "main.js"
+  },
+  "mac": {
+    "target": "dmg"
+  },
+  "win": {
+    "target": "nsis"
+  },
+  "linux": {
+    "target": "AppImage"
+  }
+}

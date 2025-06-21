@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { runSearch } from '../utils/api';
+import { runSearch, openFolder } from '../utils/api';
 import './Search.scss';
 import { ReactComponent as FolderIcon } from '../static/folder-icon.svg';
 
@@ -51,15 +51,11 @@ const Search: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) => 
     }
   };
 
-  const handleOpenFolder = async (filePath: any) => {
+  const handleOpenFolder = async (filePath: string) => {
     try {
-      await fetch(`/open-folder`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: filePath }),
-      });
-    } catch (err) {
-      setToast('Failed to open folder');
+      await openFolder(filePath);
+    } catch (err: any) {
+      setToast('Failed to open folder: ' + (err.message || 'Unknown error'));
     }
   };
 
