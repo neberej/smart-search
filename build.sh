@@ -1,49 +1,88 @@
 #!/bin/bash
+
 set -e
 
+echo "Step 1: Setting variables..."
 ROOT_DIR=$(pwd)
+BACKEND_DIR="$ROOT_DIR/backend"
 FRONTEND_DIR="$ROOT_DIR/frontend"
 DIST_APP_DIR="$ROOT_DIR/dist-app"
+BACKEND_BINARY_NAME="smartsearch-backend"
+BACKEND_BINARY_PATH="$BACKEND_DIR/dist/$BACKEND_BINARY_NAME/$BACKEND_BINARY_NAME"
 
-echo "Step 1: Cleaning previous builds..."
-rm -rf "$FRONTEND_DIR/build"
-rm -rf "$DIST_APP_DIR"
-rm -rf "$FRONTEND_DIR/dist_electron"
+echo "Step 2: Verifying Python environment..."
+source "$ROOT_DIR/venv/bin/activate"
+python3 --version
+pip3 --version
 
-echo "Step 2: Building React app..."
-cd "$FRONTEND_DIR"
-npm install
-npm run build
+echo "Step 3: Building backend..."
+cd "$BACKEND_DIR"
+rm -rf dist build
+pyinstaller backend.spec
+ls -l "$BACKEND_BINARY_PATH"
 
-echo "Step 3: Compiling Electron..."
-npx tsc -p tsconfig.json
-
-if [ ! -f "$FRONTEND_DIR/electron-dist/main.js" ]; then
-  echo "main.js not found in electron-dist/. Check tsconfig paths and entry file."
+echo "Step 4: Verifying backend dist structure..."
+if [ -d "$BACKEND_DIR/dist/$BACKEND_BINARY_NAME" ]; then
+  echo "Backend dist directory found: $BACKEND_DIR/dist/$BACKEND_BINARY_NAME"
+  ls -l "$BACKEND_DIR/dist/$BACKEND_BINARY_NAME/"
+  if [ -f "$BACKEND_BINARY_PATH" ]; then
+    echo "Executable found: $BACKEND_BINARY_PATH"
+  else
+    echo "Error: Executable not found at $BACKEND_BINARY_PATH"
+    exit 1
+  fi
+else
+  echo "Error: Backend dist directory not found at $BACKEND_DIR/dist/$BACKEND_BINARY_NAME"
   exit 1
 fi
 
-echo "Step 4: Preparing dist-app folder..."
+echo "Step 5: Verifying Python shared library..."
+python_lib_path=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
+python_lib_name=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LDLIBRARY'))")
+lib_path="$python_lib_path/$python_lib_name"
+if [ -L "$lib_path" ]; then
+  python_lib_real=$(readlink -f "$lib_path")
+else
+  python_lib_real="$lib_path"
+fi
+if [ ! -f "$python_lib_real" ]; then
+  python_lib_real="/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/lib/libpython3.13.dylib"
+fi
+if [ -f "$python_lib_real" ]; then
+  echo "Python shared library found: $python_lib_real"
+else
+  echo "Error: Python shared library not found at $python_lib_real"
+  exit 1
+fi
+
+echo "Step 6: Preparing dist-app folder..."
 mkdir -p "$DIST_APP_DIR"
+mkdir -p "$DIST_APP_DIR/backend"
+
+echo "Step 6.1: Cleaning stale smartsearch-backend file if exists..."
+if [ -f "$DIST_APP_DIR/backend/$BACKEND_BINARY_NAME" ]; then
+  echo "Warning: $DIST_APP_DIR/backend/$BACKEND_BINARY_NAME exists as a file. Removing..."
+  rm -f "$DIST_APP_DIR/backend/$BACKEND_BINARY_NAME"
+fi
+
 cp -r "$FRONTEND_DIR/electron-dist/"* "$DIST_APP_DIR/"
 cp -r "$FRONTEND_DIR/build" "$DIST_APP_DIR/build"
 
-echo "Step 5: Creating minimal package.json..."
-cat > "$DIST_APP_DIR/package.json" <<EOF
-{
-  "name": "smart-search",
-  "version": "1.0.0",
-  "main": "main.js",
-  "description": "SmartSearch Electron App",
-  "author": "Your Name"
-}
-EOF
 
-echo "Step 6: Packaging with electron-builder..."
+# Copy the entire smartsearch-backend directory to dist-app/backend/
+cp -r "$BACKEND_DIR/dist/$BACKEND_BINARY_NAME" "$DIST_APP_DIR/backend/"
+chmod +x "$DIST_APP_DIR/backend/$BACKEND_BINARY_NAME/$BACKEND_BINARY_NAME"
+
+echo "Verifying backend binary in dist-app..."
+ls -l "$DIST_APP_DIR/backend/$BACKEND_BINARY_NAME/"
+
+echo "Step 7: Building Electron app..."
 cd "$FRONTEND_DIR"
-npx electron-builder --config frontend/electron-builder.json --projectDir="$ROOT_DIR"
+npm run electron-build
 
-echo "Step 7: Cleaning up temporary dist-app folder..."
-rm -rf "$DIST_APP_DIR"
+echo "Step 8: Cleaning up unnecessary folders..."
+rm -rf "$BACKEND_DIR/dist" "$BACKEND_DIR/build"
+rm -rf "$FRONTEND_DIR/electron-dist"
+echo "Cleanup complete. Output is in $DIST_APP_DIR"
 
-echo "Done. Packaged app is in /dist_electron folder"
+echo "Build complete!"

@@ -10,3 +10,5 @@ dist
 __pycache__
 electron-dist
 dist_electron
+dist-app
+dist-app/
