@@ -5,17 +5,27 @@
     "output": "../dist_electron"
   },
   "files": [
+    "electron-dist/**/*",
     "build/**/*",
-    "electron-dist/**/*"
+    {
+      "from": "../dist-app/backend/",
+      "to": "backend/",
+      "filter": ["**/*"]
+    },
+    {
+      "from": "../dist-app/package.json",
+      "to": "package.json"
+    }
   ],
   "extraResources": [
     {
-      "from": "./dist-app/backend/smartsearch-backend/",
-      "to": "backend/smartsearch-backend/"
+      "from": "../dist-app/backend/smartsearch-backend",
+      "to": "backend/smartsearch-backend"
     }
   ],
   "mac": {
     "target": "dmg",
     "icon": "build/icon.icns"
-  }
+  },
+  "extends": null
 }

@@ -1,6 +1,9 @@
 {
   "name": "smart-search-frontend-ts",
   "version": "1.0.0",
+  "main": "electron-dist/main.js",
+  "description": "SmartSearch Desktop App",
+  "author": "Your Name",
   "homepage": "./",
   "private": true,
   "dependencies": {
@@ -17,8 +20,9 @@
   "scripts": {
     "start": "BROWSER=none react-scripts start",
     "build": "react-scripts build",
+    "compile-electron": "tsc -p tsconfig.json",
     "electron": "electron electron-dist/main.js",
-    "electron-build": "electron-builder"
+    "electron-build": "npm run build && electron-builder"
   },
   "browserslist": {
     "production": [

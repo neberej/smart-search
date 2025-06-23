@@ -10,7 +10,7 @@ const createWindow = () => {
     height: 800,
     frame: false,
     title: 'SmartSearch',
-    icon: path.join(__dirname, 'icon.png'),
+    icon: path.join(__dirname, '../build/icon.icns'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
