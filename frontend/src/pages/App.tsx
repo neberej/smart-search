@@ -4,6 +4,7 @@ import Settings from '../components/Settings';
 import Toast from '../components/Toast';
 import { ReactComponent as SettingsIcon } from '../static/settings-icon.svg';
 import { ReactComponent as CloseIcon } from '../static/close-icon.svg';
+import { checkBackendHealth } from '../utils/api';
 
 import './App.scss';
 
@@ -31,47 +32,60 @@ const App: React.FC = () => {
   });
 
   const [backendReady, setBackendReady] = useState(false);
-
-  const checkBackendHealth = async () => {
-    try {
-      const res = await fetch('http://localhost:8001/health');
-      if (res.ok) {
-        setBackendReady(true);
-      } else {
-        setTimeout(checkBackendHealth, 1000);
-      }
-    } catch {
-      setTimeout(checkBackendHealth, 1000);
-    }
-  };
+  const [backendError, setBackendError] = useState(false);
 
   useEffect(() => {
-    checkBackendHealth();
+    let attempts = 0;
+    const tryCheck = async () => {
+      try {
+        const res = await checkBackendHealth();
+        if (res.status === 200) {
+          setBackendReady(true);
+        } else {
+          throw new Error(`status ${res.status}`);
+        }
+      } catch {
+        attempts += 1;
+        if (attempts >= 10) {
+          setBackendError(true);
+        } else {
+          setTimeout(tryCheck, 1000);
+        }
+      }
+    };
+    tryCheck();
   }, []);
 
   const goBackToSearch = () => setPage('search');
 
-  if (!backendReady) {
-    return (
-      <div className="container">
-        <div className="titlebar">
-          <div className="drag-region" />
-          <div className="topbar-buttons-container">
-            <button
-              className="close-fab"
-              onClick={() => (window as any).electron?.closeApp()}
-              aria-label="Close"
-            >
-              <CloseIcon />
-            </button>
-          </div>
-        </div>
-        <div className="main-content waiting">
-          <p>Waiting for backend to start...</p>
+  const renderLoader = () => (
+    <div className="container">
+      <div className="titlebar">
+        <div className="drag-region" />
+        <div className="topbar-buttons-container">
+          <button
+            className="close-fab"
+            onClick={() => (window as any).electron?.closeApp()}
+            aria-label="Close"
+          >
+            <CloseIcon />
+          </button>
         </div>
       </div>
-    );
-  }
+      <div className="main-content waiting">
+        {backendError ? (
+          <p>Backend failed to start!.</p>
+        ) : (
+          <>
+            <div className="spinner" />
+            <p>Waiting for backend to start...</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  if (!backendReady) return renderLoader();
 
   return (
     <div className="container">

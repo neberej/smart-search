@@ -9,27 +9,24 @@
 
 .titlebar {
   height: 30px;
-  width: 800px;
-  margin: 0 auto;
+  width: 100%;
   background: transparent;
   display: flex;
   align-items: center;
   padding: 0 10px;
-  -webkit-app-region: no-drag;
 
-  /* Left drag region fills space */
   .drag-region {
     -webkit-app-region: drag;
     flex: 1;
     height: 100%;
   }
 
-  /* Right buttons container matches main-content width */
   .topbar-buttons-container {
-    width: 800px;
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+    margin-right: 25px;
+    padding-top: 10px;
 
     button {
       -webkit-app-region: no-drag;
@@ -52,11 +49,11 @@
         width: 18px;
         height: 18px;
       }
+
       &.close-fab svg {
         width: 22px;
         height: 22px;
       }
-      
     }
   }
 }
@@ -69,4 +66,11 @@
   margin: 0 auto;
   box-sizing: border-box;
   max-height: 100%;
+}
+
+.main-content.waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
 }

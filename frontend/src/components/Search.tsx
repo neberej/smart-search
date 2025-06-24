@@ -3,21 +3,9 @@ import { runSearch, openFolder } from '../utils/api';
 import './Search.scss';
 import { ReactComponent as FolderIcon } from '../static/folder-icon.svg';
 
-interface FileMatch {
-  filename: string;
-}
-
-interface EmbedMatch {
-  filename?: string;
-  highlighted?: string;
-  text?: string;
-  score: number;
-}
-
-interface PreservedResults {
-  fileMatches: FileMatch[];
-  embedMatches: EmbedMatch[];
-}
+interface FileMatch { filename: string }
+interface EmbedMatch { filename?: string; highlighted?: string; text?: string; score: number }
+interface PreservedResults { fileMatches: FileMatch[]; embedMatches: EmbedMatch[] }
 
 interface SearchProps {
   setToast: (msg: string) => void;
@@ -28,68 +16,80 @@ interface SearchProps {
 }
 
 const Search: React.FC<SearchProps> = ({
-  setToast,
-  preservedQuery,
-  setPreservedQuery,
-  preservedResults,
-  setPreservedResults
+  setToast, preservedQuery, setPreservedQuery, preservedResults, setPreservedResults
 }) => {
   const [loading, setLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  const { fileMatches, embedMatches } = preservedResults;
+  const allResults = [...fileMatches, ...embedMatches];
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    const height = allResults.length > 0 ? 800 : 200;
+    window.electron?.ipcRenderer?.send('resize-window', height);
+  }, [allResults, preservedQuery]);
+
+  // Move focus to the selected LI after render
+  useEffect(() => {
+    const items = listRef.current?.querySelectorAll<HTMLLIElement>('.result-item');
+    const el = items?.[selectedIndex];
+    el?.focus();
+  }, [selectedIndex, allResults.length]);
 
   const clearSearch = () => {
     setPreservedQuery('');
     setPreservedResults({ fileMatches: [], embedMatches: [] });
+    setSelectedIndex(0);
+    inputRef.current?.focus();
     window.electron?.ipcRenderer?.send('resize-window', 200);
   };
 
-  useEffect(() => {
-    inputRef.current?.focus();
-    window.electron?.ipcRenderer?.send('resize-window', 800);
-
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        clearSearch();
-      }
-    };
-
-    document.addEventListener('keydown', handleGlobalKeyDown);
-    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
-
   const handleSearch = async () => {
     if (!preservedQuery.trim()) {
-      setPreservedResults({ fileMatches: [], embedMatches: [] });
+      clearSearch();
       return;
     }
     setLoading(true);
     try {
       const res = await runSearch(preservedQuery);
-      const fileMatches = res.data.fileMatch || [];
-      const embedMatches = res.data.embedMatch || [];
-      setPreservedResults({ fileMatches, embedMatches });
-      window.electron?.ipcRenderer?.send('resize-window', 800);
+      const fm = res.data.fileMatch || [];
+      const em = res.data.embedMatch || [];
+      setPreservedResults({ fileMatches: fm, embedMatches: em });
+      setSelectedIndex(0);
     } catch (e: any) {
       setToast('Search failed: ' + (e.message || 'Unknown error'));
     }
     setLoading(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
-
-  const handleOpenFolder = async (filePath: any) => {
+  const handleOpenFolder = async (filePath: string) => {
+    if (!filePath) return;
     try {
       await openFolder(filePath);
-    } catch (err: any) {
-      setToast('Failed to open folder: ' + (err.message || 'Unknown error'));
+    } catch (e: any) {
+      setToast('Failed to open folder: ' + (e.message || 'Unknown error'));
     }
   };
 
-  const { fileMatches, embedMatches } = preservedResults;
+  const onListKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(idx => Math.min(idx + 1, allResults.length - 1));
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(idx => Math.max(idx - 1, 0));
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const item = allResults[selectedIndex];
+      handleOpenFolder((item as FileMatch | EmbedMatch).filename || '');
+    }
+    if (e.key === 'Escape') clearSearch();
+  };
 
   return (
     <div className="search-container">
@@ -100,86 +100,97 @@ const Search: React.FC<SearchProps> = ({
           autoComplete="on"
           className="search-input"
           value={preservedQuery}
-          onChange={(e) => setPreservedQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onChange={e => setPreservedQuery(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSearch()}
           placeholder="Search something..."
-          aria-label="Search query"
           disabled={loading}
         />
         {preservedQuery && (
-          <button className="clear-button" onClick={clearSearch} aria-label="Clear search">
-            ×
-          </button>
+          <button className="clear-button" onClick={clearSearch}>×</button>
         )}
-        <button
-          className="search-button"
-          onClick={handleSearch}
-          disabled={loading}
-          aria-label={loading ? 'Searching' : 'Search'}
-        >
+        <button className="search-button" onClick={handleSearch} disabled={loading}>
           {loading ? 'Searching...' : 'Search'}
         </button>
       </div>
 
-      {preservedQuery && fileMatches.length === 0 && embedMatches.length === 0 && !loading && (
+      {preservedQuery && allResults.length === 0 && !loading && (
         <div className="no-results">No results found.</div>
       )}
 
-      {preservedQuery && (
+      {allResults.length > 0 && (
         <div className="results-section">
-          <ul className="results-list">
+          <ul
+            className="results-list"
+            ref={listRef}
+            tabIndex={0}
+            onKeyDown={onListKeyDown}
+            role="listbox"
+            aria-activedescendant={`result-${selectedIndex}`}
+          >
             {fileMatches.map((match, idx) => (
-              <li key={`file-${idx}`} className="result-item">
+              <li
+                id={`result-${idx}`}
+                key={`file-${idx}`}
+                className={`result-item ${selectedIndex === idx ? 'selected' : ''}`}
+                tabIndex={selectedIndex === idx ? 0 : -1}
+                onClick={() => handleOpenFolder(match.filename)}
+              >
                 <div className="result-card">
                   <div className="result-header">
                     <div className="result-text">File: {match.filename}</div>
                     <button
                       className="open-folder-btn"
                       title="Open folder"
-                      onClick={() => handleOpenFolder(match.filename)}
-                      aria-label={`Open folder for ${match.filename}`}
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleOpenFolder(match.filename);
+                      }}
                     >
-                      <FolderIcon aria-hidden="true" />
+                      <FolderIcon />
                     </button>
                   </div>
                 </div>
               </li>
             ))}
-          </ul>
-        </div>
-      )}
-
-      {preservedQuery && (
-        <div className="results-section">
-          <ul className="results-list">
-            {embedMatches.map((result, idx) => (
-              <li key={`embed-${idx}`} className="result-item">
-                {result.filename ? (
-                  <div className="result-card">
-                    <div className="result-header">
-                      <div
-                        className="result-text"
-                        dangerouslySetInnerHTML={{
-                          __html: result.highlighted?.trim() || result.text || 'No text available',
-                        }}
-                      />
-                      <button
-                        className="open-folder-btn"
-                        title="Open folder"
-                        onClick={() => handleOpenFolder(result.filename)}
-                        aria-label={`Open folder for ${result.filename}`}
-                      >
-                        <FolderIcon aria-hidden="true" />
-                      </button>
+            {embedMatches.map((res, idx) => {
+              const globalIdx = fileMatches.length + idx;
+              return (
+                <li
+                  id={`result-${globalIdx}`}
+                  key={`embed-${idx}`}
+                  className={`result-item ${selectedIndex === globalIdx ? 'selected' : ''}`}
+                  tabIndex={selectedIndex === globalIdx ? 0 : -1}
+                  onClick={() => res.filename && handleOpenFolder(res.filename)}
+                >
+                  {res.filename ? (
+                    <div className="result-card">
+                      <div className="result-header">
+                        <div
+                          className="result-text"
+                          dangerouslySetInnerHTML={{
+                            __html: res.highlighted?.trim() || res.text || 'No text'
+                          }}
+                        />
+                        <button
+                          className="open-folder-btn"
+                          title="Open folder"
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleOpenFolder(res.filename!);
+                          }}
+                        >
+                          <FolderIcon />
+                        </button>
+                      </div>
+                      <div className="result-path">File: {res.filename}</div>
+                      <div className="result-score">Score: {res.score.toFixed(4)}</div>
                     </div>
-                    <div className="result-path">File: {result.filename}</div>
-                    <div className="result-score">Score: {result.score.toFixed(4)}</div>
-                  </div>
-                ) : (
-                  <div className="no-matches">No matches!</div>
-                )}
-              </li>
-            ))}
+                  ) : (
+                    <div className="no-matches">No matches!</div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

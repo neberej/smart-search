@@ -6,9 +6,11 @@ let mainWindow: BrowserWindow | null = null;
 
 const createWindow = async () => {
   mainWindow = new BrowserWindow({
-    width: 1200,
+    width: 800,
     height: 800,
     frame: false,
+    center: true,
+    resizable: false,
     title: 'SmartSearch',
     icon: path.join(__dirname, '../build/icon.icns'),
     webPreferences: {
