@@ -51,8 +51,11 @@ cat > "$DIST_APP_DIR/package.json" <<EOF
 EOF
 
 echo -e "${BLUE}Step 6 of 7: Copying backend binary to dist-app...${NC}"
-cp -r "$BACKEND_BINARY_PATH" "$DIST_APP_DIR/backend/"
-chmod +x "$DIST_APP_DIR/backend/$BACKEND_BINARY_NAME"
+# cp -r "$BACKEND_BINARY_PATH" "$DIST_APP_DIR/backend/"
+# chmod +x "$DIST_APP_DIR/backend/$BACKEND_BINARY_NAME"
+
+cp -r "$BACKEND_DIR/dist/$BACKEND_BINARY_NAME" "$DIST_APP_DIR/backend/"
+chmod +x "$DIST_APP_DIR/backend/$BACKEND_BINARY_NAME/$BACKEND_BINARY_NAME"
 
 echo -e "${BLUE}Step 7 of 7: Running electron-builder...${NC}"
 cd "$FRONTEND_DIR"

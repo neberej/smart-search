@@ -17,6 +17,7 @@ binaries = [
 ]
 datas = [
     ('../config.json', '.'),
+    ('./parsers', 'backend/parsers'),
     ('./__init__.py', 'backend'),
     ('./api.py', 'backend'),
     ('./config.py', 'backend'),

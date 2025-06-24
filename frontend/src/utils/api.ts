@@ -3,7 +3,6 @@ import axios from 'axios';
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
 const baseURL = isElectron ? 'http://localhost:8001' : '';
 
-console.log('📡 baseURL =', baseURL); // 👈 Confirm in devtools
 
 const api = axios.create({
   baseURL,

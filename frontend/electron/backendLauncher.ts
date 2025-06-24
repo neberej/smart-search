@@ -1,53 +1,105 @@
-import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
-import { app } from 'electron';
+import fs from 'fs';
+import { spawn, ChildProcess, execSync } from 'child_process';
 import path from 'path';
+import { app } from 'electron';
+import net from 'net';
 
-let backendProcess: ChildProcessWithoutNullStreams | null = null;
+let backendProcess: ChildProcess | null = null;
+
+// Log to /tmp/smartsearch.log (accessible location)
+const logFile = '/tmp/smartsearch.log';
+const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+
+// Log to both console and file
+function logToFile(message: string) {
+  const timestampedMessage = `${new Date().toISOString()} ${message}\n`;
+  logStream.write(timestampedMessage);
+  console.log(message);
+}
+
+function killPort(port: number) {
+  try {
+    const result = execSync(`lsof -ti tcp:${port}`);
+    const pids = result.toString().split('\n').filter(Boolean);
+    for (const pid of pids) {
+      logToFile(`[Electron] Killing process on port ${port} (PID ${pid})`);
+      process.kill(parseInt(pid), 'SIGKILL');
+    }
+  } catch (err: unknown) {
+    const error = err as NodeJS.ErrnoException;
+    logToFile(`[Electron] No process found on port ${port}: ${error.message || 'Unknown error'}`);
+  }
+}
 
 export function startBackend() {
-  if (backendProcess) {
-    console.log('Backend already running.');
-    return;
-  }
-
-  let exePath = path.join(
-    process.resourcesPath,
-    'backend',
-    'smartsearch-backend',
-    'smartsearch-backend'
-  );
-
+  const PORT = 8001;
+  // Point to the actual binary inside the smartsearch-backend directory
+  const backendDir = path.join(process.resourcesPath, 'backend', 'smartsearch-backend');
+  let exePath = path.join(backendDir, 'smartsearch-backend'); // Binary is likely here
   if (process.platform === 'win32') {
     exePath += '.exe';
   }
 
+  // Verify binary exists and is executable
+  if (!fs.existsSync(exePath)) {
+    logToFile(`[Electron] Backend binary not found at: ${exePath}`);
+    throw new Error(`Backend binary missing`);
+  }
+  try {
+    fs.accessSync(exePath, fs.constants.X_OK);
+    logToFile(`[Electron] Backend binary is executable: ${exePath}`);
+  } catch (e: unknown) {
+    const error = e as NodeJS.ErrnoException;
+    logToFile(`[Electron] Backend binary not executable: ${error.message || 'Unknown error'}`);
+    throw error;
+  }
+
+  // Set executable permissions
+  try {
+    fs.chmodSync(exePath, 0o755);
+    logToFile(`[Electron] Set execute permissions on backend binary: ${exePath}`);
+  } catch (e: unknown) {
+    const error = e as NodeJS.ErrnoException;
+    logToFile(`[Electron] Failed to set permissions on backend binary: ${error.message || 'Unknown error'}`);
+  }
+
+  logToFile(`[Electron] Launching backend from: ${exePath}`);
+
+  // Set environment for PyInstaller bundle
+  const env = {
+    ...process.env,
+    PYTHONPATH: backendDir // Point to backend directory for .dylib files
+  };
+
   backendProcess = spawn(exePath, [], {
-    stdio: 'pipe',
-    env: { ...process.env }
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env,
+    cwd: backendDir // Set working directory to backend folder
   });
 
-  backendProcess.stdout.on('data', (data) => {
-    console.log(`Backend stdout: ${data}`);
+  backendProcess.on('error', (err: NodeJS.ErrnoException) => {
+    logToFile(`[Electron] Spawn error: ${err.message}`);
+    if (err.code) logToFile(`[Electron] Error code: ${err.code}`);
+    if (err.stack) logToFile(`[Electron] Error stack: ${err.stack}`);
   });
 
-  backendProcess.stderr.on('data', (data) => {
-    console.error(`Backend stderr: ${data}`);
+  backendProcess.stdout?.on('data', (data) => {
+    logToFile(`[Backend stdout]: ${data.toString().trim()}`);
+  });
+
+  backendProcess.stderr?.on('data', (data) => {
+    logToFile(`[Backend stderr]: ${data.toString().trim()}`);
   });
 
   backendProcess.on('close', (code) => {
-    console.log(`Backend process exited with code ${code}`);
-    backendProcess = null;
+    logToFile(`[Electron] Backend exited with code: ${code}`);
   });
-
-  console.log('Backend process started.');
 }
 
 export function stopBackend() {
   if (backendProcess) {
+    logToFile('[Electron] Stopping backend process...');
     backendProcess.kill();
     backendProcess = null;
-    console.log('Backend process killed.');
-  } else {
-    console.log('No backend process to kill.');
   }
 }
