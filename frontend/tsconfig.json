@@ -14,6 +14,7 @@
   "include": [
     "electron/main.ts",
     "electron/preload.ts",
-    "electron/backendLauncher.ts"
+    "electron/backendLauncher.ts",
+    "src/svg.d.ts"
   ]
 }

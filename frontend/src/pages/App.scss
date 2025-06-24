@@ -1,122 +1,72 @@
 .container {
-  max-width: 800px;
+  height: 100vh;
+  width: 800px;
   margin: 0 auto;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
 }
 
 .titlebar {
+  height: 30px;
+  width: 800px;
+  margin: 0 auto;
+  background: transparent;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 32px;
-  background: #f5f5f5;
-  border-bottom: 1px solid #e0e0e0;
-  padding: 0 12px;
-  -webkit-app-region: drag;
-}
-
-.app-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-  user-select: none;
-}
-
-.close-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  background: #ff5f57;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
+  padding: 0 10px;
   -webkit-app-region: no-drag;
-  transition: background 0.2s ease;
-  padding: 2px;
-}
 
-.close-button svg {
-  width: 10px;
-  height: 10px;
-}
+  /* Left drag region fills space */
+  .drag-region {
+    -webkit-app-region: drag;
+    flex: 1;
+    height: 100%;
+  }
 
-.close-button:hover {
-  background: #e04a44;
-}
+  /* Right buttons container matches main-content width */
+  .topbar-buttons-container {
+    width: 800px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 
-.close-button:active {
-  background: #c03933;
-}
+    button {
+      -webkit-app-region: no-drag;
+      background: white;
+      border: 0;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: box-shadow 0.2s ease;
 
+      &:hover {
+        color: #008080;
+      }
 
-.tabs {
-  margin-bottom: 20px;
-}
-
-.tab-list {
-  display: flex;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  border-bottom: 0.2px solid #eee;
-  justify-content: space-between;
-}
-
-.tab button {
-  background: none;
-  border: none;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  color: #555;
-  transition: color 0.3s ease, border-bottom-color 0.3s ease;
-  position: relative;
-}
-
-.tab.active button {
-  color: #007bff;
-  font-weight: 500;
-  margin-bottom: -0.5px;
-  &:not(.icon) {
-    border-bottom: 2px solid #007bff;
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+      &.close-fab svg {
+        width: 22px;
+        height: 22px;
+      }
+      
+    }
   }
 }
 
-.tab button:hover {
-  color: #0056b3;
-}
-
-.tab-content {
+.main-content {
+  flex: 1;
+  overflow-y: auto;
   padding: 20px;
-  background: #fff;
-  border-radius: 8px;
-  min-height: 300px; // Ensure content area has minimum height
-}
-
-@media (max-width: 600px) {
-  .tab-list {
-    flex-direction: column;
-  }
-
-  .tab {
-    margin-right: 0;
-    margin-bottom: 10px;
-  }
-
-  .tab button {
-    width: 100%;
-    text-align: left;
-  }
-}
-
-.tab button svg {
-  width: 16px;
-  height: 16px;
-  vertical-align: middle;
-}
-
-.draggable {
-  -webkit-app-region: drag;
+  width: 800px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  min-height: calc(100vh - 30px);
 }

@@ -66,12 +66,21 @@ const createWindow = async () => {
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools();
   }
+  //mainWindow.webContents.openDevTools();
 
   ipcMain.on('app/close', () => {
     stopBackend();
     mainWindow?.close();
     app.quit();
   });
+  
+  ipcMain.on('resize-window', (_event, height: number) => {
+    if (mainWindow) {
+      const [width] = mainWindow.getSize();
+      mainWindow.setSize(width, height, true);
+    }
+  });
+
 };
 
 app.whenReady().then(() => {

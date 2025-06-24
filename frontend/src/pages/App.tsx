@@ -3,37 +3,71 @@ import Search from '../components/Search';
 import Settings from '../components/Settings';
 import Toast from '../components/Toast';
 import { ReactComponent as SettingsIcon } from '../static/settings-icon.svg';
+import { ReactComponent as CloseIcon } from '../static/close-icon.svg';
+
 import './App.scss';
 
+interface FileMatch {
+  filename: string;
+}
+
+interface EmbedMatch {
+  filename?: string;
+  highlighted?: string;
+  text?: string;
+  score: number;
+}
+
 const App: React.FC = () => {
-  const [tab, setTab] = useState<'search' | 'settings'>('search');
+  const [page, setPage] = useState<'search' | 'settings'>('search');
   const [toast, setToast] = useState('');
+  const [preservedQuery, setPreservedQuery] = useState('');
+  const [preservedResults, setPreservedResults] = useState<{
+    fileMatches: FileMatch[];
+    embedMatches: EmbedMatch[];
+  }>({
+    fileMatches: [],
+    embedMatches: [],
+  });
+
+  const goBackToSearch = () => setPage('search');
 
   return (
     <div className="container">
-      <div className="titlebar draggable">
-        <div className="app-title">SmartSearch</div>
-        <button className="close-button" onClick={() => (window as any).electronAPI?.closeApp()}>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M2 2L10 10M2 10L10 2" stroke="#333333" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </button>
+      <div className="titlebar">
+        <div className="drag-region" />
+        <div className="topbar-buttons-container">
+          <button
+            className="settings-fab"
+            onClick={() => setPage(page === 'settings' ? 'search' : 'settings')}
+            aria-label="Settings"
+          >
+            <SettingsIcon />
+          </button>
+          <button
+            className="close-fab"
+            onClick={() => (window as any).electron?.closeApp()}
+            aria-label="Close"
+          >
+            <CloseIcon />
+          </button>
+        </div>
       </div>
-      <div className="tabs">
-        <ul className="tab-list">
-          <li className={tab === 'search' ? 'tab active' : 'tab'}>
-            <button onClick={() => setTab('search')}>Search</button>
-          </li>
-          <li className={tab === 'settings' ? 'tab active' : 'tab'}>
-            <button className="icon" onClick={() => setTab('settings')}>
-              <SettingsIcon />
-            </button>
-          </li>
-        </ul>
+
+      <div className="main-content">
+        {page === 'search' ? (
+          <Search
+            setToast={setToast}
+            preservedQuery={preservedQuery}
+            setPreservedQuery={setPreservedQuery}
+            preservedResults={preservedResults}
+            setPreservedResults={setPreservedResults}
+          />
+        ) : (
+          <Settings setToast={setToast} goBack={goBackToSearch} />
+        )}
       </div>
-      <div className="tab-content">
-        {tab === 'search' ? <Search setToast={setToast} /> : <Settings setToast={setToast} />}
-      </div>
+
       <Toast message={toast} setToast={setToast} />
     </div>
   );

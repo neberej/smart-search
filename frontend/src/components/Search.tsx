@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import PropTypes from 'prop-types';
+import React, { useState, useEffect, useRef } from 'react';
 import { runSearch, openFolder } from '../utils/api';
 import './Search.scss';
 import { ReactComponent as FolderIcon } from '../static/folder-icon.svg';
@@ -15,25 +14,58 @@ interface EmbedMatch {
   score: number;
 }
 
-interface SearchResponse {
-  fileMatch: FileMatch[];
-  embedMatch: EmbedMatch[];
+interface PreservedResults {
+  fileMatches: FileMatch[];
+  embedMatches: EmbedMatch[];
 }
 
-const Search: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) => {
-  const [query, setQuery] = useState('');
-  const [fileMatches, setFileMatches] = useState<FileMatch[]>([]);
-  const [embedMatches, setEmbedMatches] = useState<EmbedMatch[]>([]);
+interface SearchProps {
+  setToast: (msg: string) => void;
+  preservedQuery: string;
+  setPreservedQuery: (val: string) => void;
+  preservedResults: PreservedResults;
+  setPreservedResults: (val: PreservedResults) => void;
+}
+
+const Search: React.FC<SearchProps> = ({
+  setToast,
+  preservedQuery,
+  setPreservedQuery,
+  preservedResults,
+  setPreservedResults
+}) => {
   const [loading, setLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const clearSearch = () => {
+    setPreservedQuery('');
+    setPreservedResults({ fileMatches: [], embedMatches: [] });
+    window.electron?.ipcRenderer?.send('resize-window', 200);
+  };
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    window.electron?.ipcRenderer?.send('resize-window', 800);
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        clearSearch();
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   const handleSearch = async () => {
+    if (!preservedQuery.trim()) return;
     setLoading(true);
-    setHasSearched(true);
     try {
-      const res = await runSearch(query);
-      setFileMatches(res.data.fileMatch || []);
-      setEmbedMatches(res.data.embedMatch || []);
+      const res = await runSearch(preservedQuery);
+      const fileMatches = res.data.fileMatch || [];
+      const embedMatches = res.data.embedMatch || [];
+      setPreservedResults({ fileMatches, embedMatches });
+      window.electron?.ipcRenderer?.send('resize-window', 800);
     } catch (e: any) {
       setToast('Search failed: ' + (e.message || 'Unknown error'));
     }
@@ -43,15 +75,10 @@ const Search: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) => 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSearch();
-    } else if (e.key === 'Escape') {
-      setQuery('');
-      setFileMatches([]);
-      setEmbedMatches([]);
-      setHasSearched(false);
     }
   };
 
-  const handleOpenFolder = async (filePath: string) => {
+  const handleOpenFolder = async (filePath: any) => {
     try {
       await openFolder(filePath);
     } catch (err: any) {
@@ -59,20 +86,28 @@ const Search: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) => 
     }
   };
 
+  const { fileMatches, embedMatches } = preservedResults;
+
   return (
     <div className="search-container">
       <div className="search-bar">
         <input
+          ref={inputRef}
           type="search"
           autoComplete="on"
           className="search-input"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          value={preservedQuery}
+          onChange={(e) => setPreservedQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Search something..."
           aria-label="Search query"
           disabled={loading}
         />
+        {preservedQuery && (
+          <button className="clear-button" onClick={clearSearch} aria-label="Clear search">
+            ×
+          </button>
+        )}
         <button
           className="search-button"
           onClick={handleSearch}
@@ -82,9 +117,11 @@ const Search: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) => 
           {loading ? 'Searching...' : 'Search'}
         </button>
       </div>
-      {hasSearched && fileMatches.length === 0 && embedMatches.length === 0 && !loading && (
+
+      {fileMatches.length === 0 && embedMatches.length === 0 && !loading && preservedQuery && (
         <div className="no-results">No results found.</div>
       )}
+
       <div className="results-section">
         <ul className="results-list">
           {fileMatches.map((match, idx) => (
@@ -106,6 +143,7 @@ const Search: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) => 
           ))}
         </ul>
       </div>
+
       <div className="results-section">
         <ul className="results-list">
           {embedMatches.map((result, idx) => (
@@ -140,10 +178,6 @@ const Search: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) => 
       </div>
     </div>
   );
-};
-
-Search.propTypes = {
-  setToast: PropTypes.func.isRequired,
 };
 
 export default Search;

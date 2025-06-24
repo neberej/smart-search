@@ -28,19 +28,19 @@ else
   echo "No process found on port 8001"
 fi
 
-echo -e "${BLUE}Step 3 of 7: Building Python backend...${NC}"
+echo -e "${BLUE}Step 3 of 7: Building backend...${NC}"
 source "$ROOT_DIR/venv/bin/activate"
 cd "$BACKEND_DIR"
 pyinstaller backend.spec
 [[ -f "$BACKEND_BINARY_PATH" ]] || { echo -e "${RED}Backend binary not found${NC}"; exit 1; }
 
-echo -e "${BLUE}Step 4 of 7: Building React frontend and compiling Electron...${NC}"
+echo -e "${BLUE}Step 4 of 7: Building frontend and compiling Electron...${NC}"
 cd "$FRONTEND_DIR"
 npm install
 npm run build
 npm run compile-electron
 
-echo -e "${BLUE}Step 5 of 7: Creating minimal package.json with correct main entry...${NC}"
+echo -e "${BLUE}Step 5 of 7: Creating package.json...${NC}"
 mkdir -p "$ELECTRON_DIST_DIR"
 cat > "$DIST_APP_DIR/package.json" <<EOF
 {
@@ -51,14 +51,12 @@ cat > "$DIST_APP_DIR/package.json" <<EOF
 EOF
 
 echo -e "${BLUE}Step 6 of 7: Copying backend binary to dist-app...${NC}"
-# cp -r "$BACKEND_BINARY_PATH" "$DIST_APP_DIR/backend/"
-# chmod +x "$DIST_APP_DIR/backend/$BACKEND_BINARY_NAME"
-
 cp -r "$BACKEND_DIR/dist/$BACKEND_BINARY_NAME" "$DIST_APP_DIR/backend/"
 chmod +x "$DIST_APP_DIR/backend/$BACKEND_BINARY_NAME/$BACKEND_BINARY_NAME"
+
 
 echo -e "${BLUE}Step 7 of 7: Running electron-builder...${NC}"
 cd "$FRONTEND_DIR"
 npx electron-builder --config electron-builder.json
 
-echo -e "${GREEN} Build complete. DMG located in: $DIST_ELECTRON_DIR${NC}"
+echo -e "${GREEN} All done!! DMG located in: $DIST_ELECTRON_DIR${NC}"
