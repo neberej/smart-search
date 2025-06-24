@@ -58,7 +58,10 @@ const Search: React.FC<SearchProps> = ({
   }, []);
 
   const handleSearch = async () => {
-    if (!preservedQuery.trim()) return;
+    if (!preservedQuery.trim()) {
+      setPreservedResults({ fileMatches: [], embedMatches: [] });
+      return;
+    }
     setLoading(true);
     try {
       const res = await runSearch(preservedQuery);
@@ -93,7 +96,7 @@ const Search: React.FC<SearchProps> = ({
       <div className="search-bar">
         <input
           ref={inputRef}
-          type="search"
+          type="text"
           autoComplete="on"
           className="search-input"
           value={preservedQuery}
@@ -118,64 +121,68 @@ const Search: React.FC<SearchProps> = ({
         </button>
       </div>
 
-      {fileMatches.length === 0 && embedMatches.length === 0 && !loading && preservedQuery && (
+      {preservedQuery && fileMatches.length === 0 && embedMatches.length === 0 && !loading && (
         <div className="no-results">No results found.</div>
       )}
 
-      <div className="results-section">
-        <ul className="results-list">
-          {fileMatches.map((match, idx) => (
-            <li key={`file-${idx}`} className="result-item">
-              <div className="result-card">
-                <div className="result-header">
-                  <div className="result-text">File: {match.filename}</div>
-                  <button
-                    className="open-folder-btn"
-                    title="Open folder"
-                    onClick={() => handleOpenFolder(match.filename)}
-                    aria-label={`Open folder for ${match.filename}`}
-                  >
-                    <FolderIcon aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="results-section">
-        <ul className="results-list">
-          {embedMatches.map((result, idx) => (
-            <li key={`embed-${idx}`} className="result-item">
-              {result.filename ? (
+      {preservedQuery && (
+        <div className="results-section">
+          <ul className="results-list">
+            {fileMatches.map((match, idx) => (
+              <li key={`file-${idx}`} className="result-item">
                 <div className="result-card">
                   <div className="result-header">
-                    <div
-                      className="result-text"
-                      dangerouslySetInnerHTML={{
-                        __html: result.highlighted?.trim() || result.text || 'No text available',
-                      }}
-                    />
+                    <div className="result-text">File: {match.filename}</div>
                     <button
                       className="open-folder-btn"
                       title="Open folder"
-                      onClick={() => handleOpenFolder(result.filename)}
-                      aria-label={`Open folder for ${result.filename}`}
+                      onClick={() => handleOpenFolder(match.filename)}
+                      aria-label={`Open folder for ${match.filename}`}
                     >
                       <FolderIcon aria-hidden="true" />
                     </button>
                   </div>
-                  <div className="result-path">File: {result.filename}</div>
-                  <div className="result-score">Score: {result.score.toFixed(4)}</div>
                 </div>
-              ) : (
-                <div className="no-matches">No matches!</div>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {preservedQuery && (
+        <div className="results-section">
+          <ul className="results-list">
+            {embedMatches.map((result, idx) => (
+              <li key={`embed-${idx}`} className="result-item">
+                {result.filename ? (
+                  <div className="result-card">
+                    <div className="result-header">
+                      <div
+                        className="result-text"
+                        dangerouslySetInnerHTML={{
+                          __html: result.highlighted?.trim() || result.text || 'No text available',
+                        }}
+                      />
+                      <button
+                        className="open-folder-btn"
+                        title="Open folder"
+                        onClick={() => handleOpenFolder(result.filename)}
+                        aria-label={`Open folder for ${result.filename}`}
+                      >
+                        <FolderIcon aria-hidden="true" />
+                      </button>
+                    </div>
+                    <div className="result-path">File: {result.filename}</div>
+                    <div className="result-score">Score: {result.score.toFixed(4)}</div>
+                  </div>
+                ) : (
+                  <div className="no-matches">No matches!</div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

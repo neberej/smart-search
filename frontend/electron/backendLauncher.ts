@@ -17,17 +17,23 @@ function logToFile(message: string) {
   console.log(message);
 }
 
-function killPort(port: number) {
+export function killPort(port: number) {
   try {
-    const result = execSync(`lsof -ti tcp:${port}`);
-    const pids = result.toString().split('\n').filter(Boolean);
-    for (const pid of pids) {
-      logToFile(`[Electron] Killing process on port ${port} (PID ${pid})`);
-      process.kill(parseInt(pid), 'SIGKILL');
+    const result = execSync(`lsof -ti tcp:${port}`).toString().split('\n').filter(Boolean);
+
+    for (const pid of result) {
+      const cmd = execSync(`ps -p ${pid} -o command=`).toString().trim();
+
+      // Add safe checks to match only your app/backend
+      if (cmd.includes('smartsearch-backend') || cmd.includes('Electron')) {
+        logToFile(`[Electron] Killing PID ${pid} using port ${port}: ${cmd}`);
+        process.kill(parseInt(pid), 'SIGKILL');
+      } else {
+        logToFile(`[Electron] Skipping PID ${pid} using port ${port}: ${cmd}`);
+      }
     }
-  } catch (err: unknown) {
-    const error = err as NodeJS.ErrnoException;
-    logToFile(`[Electron] No process found on port ${port}: ${error.message || 'Unknown error'}`);
+  } catch (err: any) {
+    logToFile(`[Electron] No process to kill on port ${port}: ${err.message}`);
   }
 }
 

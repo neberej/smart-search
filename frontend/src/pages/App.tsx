@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Search from '../components/Search';
 import Settings from '../components/Settings';
 import Toast from '../components/Toast';
@@ -30,7 +30,48 @@ const App: React.FC = () => {
     embedMatches: [],
   });
 
+  const [backendReady, setBackendReady] = useState(false);
+
+  const checkBackendHealth = async () => {
+    try {
+      const res = await fetch('http://localhost:8001/health');
+      if (res.ok) {
+        setBackendReady(true);
+      } else {
+        setTimeout(checkBackendHealth, 1000);
+      }
+    } catch {
+      setTimeout(checkBackendHealth, 1000);
+    }
+  };
+
+  useEffect(() => {
+    checkBackendHealth();
+  }, []);
+
   const goBackToSearch = () => setPage('search');
+
+  if (!backendReady) {
+    return (
+      <div className="container">
+        <div className="titlebar">
+          <div className="drag-region" />
+          <div className="topbar-buttons-container">
+            <button
+              className="close-fab"
+              onClick={() => (window as any).electron?.closeApp()}
+              aria-label="Close"
+            >
+              <CloseIcon />
+            </button>
+          </div>
+        </div>
+        <div className="main-content waiting">
+          <p>Waiting for backend to start...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
