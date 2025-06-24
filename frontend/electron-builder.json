@@ -15,6 +15,10 @@
     {
       "from": "../dist-app/package.json",
       "to": "package.json"
+    },
+    {
+      "from": "./electron/loading.html",
+      "to": "loading.html"
     }
   ],
   "extraResources": [
