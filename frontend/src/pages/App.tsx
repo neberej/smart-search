@@ -4,6 +4,7 @@ import Settings from '../components/Settings';
 import Toast from '../components/Toast';
 import { ReactComponent as SettingsIcon } from '../static/settings-icon.svg';
 import { ReactComponent as CloseIcon } from '../static/close-icon.svg';
+import { ReactComponent as MinimizeIcon } from '../static/minimize-icon.svg';
 import { checkBackendHealth } from '../utils/api';
 import './App.scss';
 
@@ -34,10 +35,19 @@ const App: React.FC = () => {
     tryCheck();
   }, []);
 
+  useEffect(() => {
+    window.electron?.ipcRenderer?.on('reset-search', () => {
+      setPreservedQuery('');
+      setPreservedResults({ fileMatches: [], embedMatches: [] });
+      setPage('search');
+    });
+  }, []);
+
   const renderLoader = () => (
     <div className="container">
       <div className="titlebar"><div className="drag-region"/><div className="topbar-buttons-container">
-        <button className="close-fab" onClick={() => (window as any).electron?.closeApp()} aria-label="Close"><CloseIcon/></button>
+        <button className="minimize-fab" onClick={() => (window as any).electron?.ipcRenderer.send('app/minimize')} aria-label="Minimize"><MinimizeIcon/></button>
+        <button className="close-fab" onClick={() => (window as any).electron?.ipcRenderer.send('app/close')} aria-label="Close"><CloseIcon/></button>
       </div></div>
       <div className="main-content waiting">
         {backendError ? <p>Backend failed to start after 10 attempts.</p> : <>
@@ -50,19 +60,14 @@ const App: React.FC = () => {
 
   if (!backendReady) return renderLoader();
 
-  const goBack = () => setPage('search');
-
   return (
     <div className="container">
       <div className="titlebar">
         <div className="drag-region"/>
         <div className="topbar-buttons-container">
-          <button className="settings-fab" onClick={() => setPage(p => p === 'settings' ? 'search' : 'settings')} aria-label="Settings">
-            <SettingsIcon/>
-          </button>
-          <button className="close-fab" onClick={() => (window as any).electron?.closeApp()} aria-label="Close">
-            <CloseIcon/>
-          </button>
+          <button className="minimize-fab" onClick={() => (window as any).electron?.ipcRenderer.send('app/minimize')} aria-label="Minimize"><MinimizeIcon/></button>
+          <button className="settings-fab" onClick={() => setPage(p => p==='settings' ? 'search' : 'settings')} aria-label="Settings"><SettingsIcon/></button>
+          <button className="close-fab" onClick={() => (window as any).electron?.ipcRenderer.send('app/close')} aria-label="Close"><CloseIcon/></button>
         </div>
       </div>
       <div className="main-content">
@@ -70,7 +75,7 @@ const App: React.FC = () => {
           <Search setToast={setToast} preservedQuery={preservedQuery} setPreservedQuery={setPreservedQuery}
                   preservedResults={preservedResults} setPreservedResults={setPreservedResults} />
         ) : (
-          <Settings setToast={setToast} goBack={goBack}/>
+          <Settings setToast={setToast} goBack={() => setPage('search')} />
         )}
       </div>
       <Toast message={toast} setToast={setToast}/>

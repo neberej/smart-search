@@ -190,15 +190,13 @@
             color: #888;
           }
         }
-
-        .result-item.selected {
+        &.selected {
           .result-card {
             background-color: #e6f0ff;
             border: 0.5px solid #007aff;
             border-radius: 12px;
           }
         }
-
       }
     }
   }

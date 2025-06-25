@@ -6,8 +6,12 @@ let mainWindow: BrowserWindow | null = null;
 
 const createWindow = async () => {
   mainWindow = new BrowserWindow({
-    width: 800, height: 500,
-    frame: false, center: true, show: false,
+    width: 800,
+    height: 200,
+    frame: false,
+    center: true,
+    show: false,
+    skipTaskbar: false,
     title: 'SmartSearch',
     icon: path.join(__dirname, '../build/icon.icns'),
     webPreferences: {
@@ -16,19 +20,26 @@ const createWindow = async () => {
       nodeIntegration: false,
     },
   });
+
   mainWindow.setMenuBarVisibility(false);
   await mainWindow.loadFile(path.join(app.getAppPath(), 'build', 'index.html'));
 
-  // register global shortcut (CmdOrCtrl+Space)
   globalShortcut.register('CommandOrControl+Space', () => {
-    if (mainWindow) {
-      if (mainWindow.isVisible()) {
-        mainWindow.hide();
-      } else {
-        mainWindow.show();
-        mainWindow.focus();
-      }
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (mainWindow.isVisible()) {
+      mainWindow.hide();
+    } else {
+      const [width] = mainWindow.getSize();
+      mainWindow.setSize(width, 200, true);
+
+      mainWindow.show();
+      mainWindow.focus();
+      mainWindow.webContents.send('reset-search');
     }
+  });
+
+  ipcMain.on('app/minimize', () => {
+    mainWindow?.hide();
   });
 
   ipcMain.on('app/close', () => {

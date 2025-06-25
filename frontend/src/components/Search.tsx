@@ -19,49 +19,114 @@ const Search: React.FC<SearchProps> = ({
   setToast, preservedQuery, setPreservedQuery, preservedResults, setPreservedResults
 }) => {
   const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
   const { fileMatches, embedMatches } = preservedResults;
   const allResults = [...fileMatches, ...embedMatches];
 
+  // Focus input on load
   useEffect(() => {
     inputRef.current?.focus();
+    window.electron?.ipcRenderer?.send('resize-window', 200);
+  }, []);
+
+  // Resize on results update
+  useEffect(() => {
     const height = allResults.length > 0 ? 500 : 200;
     window.electron?.ipcRenderer?.send('resize-window', height);
-  }, [allResults, preservedQuery]);
+  }, [allResults.length]);
 
-  // Move focus to the selected LI after render
+  // Scroll selected result into view
   useEffect(() => {
     const items = listRef.current?.querySelectorAll<HTMLLIElement>('.result-item');
     const el = items?.[selectedIndex];
-    el?.focus();
-  }, [selectedIndex, allResults.length]);
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }, [selectedIndex]);
+
+  // Global key listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInputFocused = document.activeElement === inputRef.current;
+
+      if (e.key === 'Tab') return;
+
+      if (e.key === 'Backspace') {
+        if (!isInputFocused) {
+          e.preventDefault();
+          inputRef.current?.focus();
+        }
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (isInputFocused) {
+          handleSearch();
+        } else {
+          const item = allResults[selectedIndex];
+          if (item?.filename) handleOpenFolder(item.filename);
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex(i => Math.min(i + 1, allResults.length - 1));
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex(i => Math.max(i - 1, 0));
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        window.electron?.ipcRenderer?.send('app/minimize');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [allResults, selectedIndex]);
 
   const clearSearch = () => {
     setPreservedQuery('');
     setPreservedResults({ fileMatches: [], embedMatches: [] });
+    setHasSearched(false);
     setSelectedIndex(0);
     inputRef.current?.focus();
     window.electron?.ipcRenderer?.send('resize-window', 200);
   };
 
   const handleSearch = async () => {
-    if (!preservedQuery.trim()) {
+    const trimmed = preservedQuery.trim();
+    if (!trimmed) {
       clearSearch();
       return;
     }
+
     setLoading(true);
+    setHasSearched(true);
+
     try {
-      const res = await runSearch(preservedQuery);
-      const fm = res.data.fileMatch || [];
-      const em = res.data.embedMatch || [];
-      setPreservedResults({ fileMatches: fm, embedMatches: em });
+      const res = await runSearch(trimmed);
+      setPreservedResults({
+        fileMatches: res.data.fileMatch || [],
+        embedMatches: res.data.embedMatch || [],
+      });
       setSelectedIndex(0);
+
+      // Blur input after search so arrow keys work + prevent Enter glitch
+      inputRef.current?.blur();
     } catch (e: any) {
       setToast('Search failed: ' + (e.message || 'Unknown error'));
     }
+
     setLoading(false);
   };
 
@@ -69,26 +134,10 @@ const Search: React.FC<SearchProps> = ({
     if (!filePath) return;
     try {
       await openFolder(filePath);
+      window.electron?.ipcRenderer?.send('app/minimize');
     } catch (e: any) {
-      setToast('Failed to open folder: ' + (e.message || 'Unknown error'));
+      setToast('Failed: ' + e.message);
     }
-  };
-
-  const onListKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex(idx => Math.min(idx + 1, allResults.length - 1));
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex(idx => Math.max(idx - 1, 0));
-    }
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const item = allResults[selectedIndex];
-      handleOpenFolder((item as FileMatch | EmbedMatch).filename || '');
-    }
-    if (e.key === 'Escape') clearSearch();
   };
 
   return (
@@ -97,53 +146,43 @@ const Search: React.FC<SearchProps> = ({
         <input
           ref={inputRef}
           type="text"
-          autoComplete="on"
-          className="search-input"
           value={preservedQuery}
-          onChange={e => setPreservedQuery(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSearch()}
+          onChange={(e) => {
+            setPreservedQuery(e.target.value);
+            setHasSearched(false); // Prevent “no results” on hide/show
+          }}
           placeholder="Search something..."
+          className="search-input"
           disabled={loading}
         />
-        {preservedQuery && (
-          <button className="clear-button" onClick={clearSearch}>×</button>
-        )}
+        {preservedQuery && <button className="clear-button" onClick={clearSearch}>×</button>}
         <button className="search-button" onClick={handleSearch} disabled={loading}>
           {loading ? 'Searching...' : 'Search'}
         </button>
       </div>
 
-      {preservedQuery && allResults.length === 0 && !loading && (
+      {hasSearched && preservedQuery.trim() && allResults.length === 0 && !loading && (
         <div className="no-results">No results found.</div>
       )}
 
       {allResults.length > 0 && (
         <div className="results-section">
-          <ul
-            className="results-list"
-            ref={listRef}
-            tabIndex={0}
-            onKeyDown={onListKeyDown}
-            role="listbox"
-            aria-activedescendant={`result-${selectedIndex}`}
-          >
-            {fileMatches.map((match, idx) => (
+          <ul ref={listRef} className="results-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            {fileMatches.map((m, i) => (
               <li
-                id={`result-${idx}`}
-                key={`file-${idx}`}
-                className={`result-item ${selectedIndex === idx ? 'selected' : ''}`}
-                tabIndex={selectedIndex === idx ? 0 : -1}
-                onClick={() => handleOpenFolder(match.filename)}
+                key={i}
+                className={`result-item ${selectedIndex === i ? 'selected' : ''}`}
+                tabIndex={-1}
+                onClick={() => handleOpenFolder(m.filename)}
               >
                 <div className="result-card">
                   <div className="result-header">
-                    <div className="result-text">File: {match.filename}</div>
+                    <div className="result-text">File: {m.filename}</div>
                     <button
                       className="open-folder-btn"
-                      title="Open folder"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
-                        handleOpenFolder(match.filename);
+                        handleOpenFolder(m.filename);
                       }}
                     >
                       <FolderIcon />
@@ -152,42 +191,36 @@ const Search: React.FC<SearchProps> = ({
                 </div>
               </li>
             ))}
-            {embedMatches.map((res, idx) => {
-              const globalIdx = fileMatches.length + idx;
+            {embedMatches.map((r, idx) => {
+              const gi = fileMatches.length + idx;
               return (
                 <li
-                  id={`result-${globalIdx}`}
-                  key={`embed-${idx}`}
-                  className={`result-item ${selectedIndex === globalIdx ? 'selected' : ''}`}
-                  tabIndex={selectedIndex === globalIdx ? 0 : -1}
-                  onClick={() => res.filename && handleOpenFolder(res.filename)}
+                  key={gi}
+                  className={`result-item ${selectedIndex === gi ? 'selected' : ''}`}
+                  tabIndex={-1}
+                  onClick={() => r.filename && handleOpenFolder(r.filename)}
                 >
-                  {res.filename ? (
-                    <div className="result-card">
-                      <div className="result-header">
-                        <div
-                          className="result-text"
-                          dangerouslySetInnerHTML={{
-                            __html: res.highlighted?.trim() || res.text || 'No text'
-                          }}
-                        />
-                        <button
-                          className="open-folder-btn"
-                          title="Open folder"
-                          onClick={e => {
-                            e.stopPropagation();
-                            handleOpenFolder(res.filename!);
-                          }}
-                        >
-                          <FolderIcon />
-                        </button>
-                      </div>
-                      <div className="result-path">File: {res.filename}</div>
-                      <div className="result-score">Score: {res.score.toFixed(4)}</div>
+                  <div className="result-card">
+                    <div className="result-header">
+                      <div
+                        className="result-text"
+                        dangerouslySetInnerHTML={{
+                          __html: r.highlighted?.trim() || r.text || 'No text',
+                        }}
+                      />
+                      <button
+                        className="open-folder-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          r.filename && handleOpenFolder(r.filename);
+                        }}
+                      >
+                        <FolderIcon />
+                      </button>
                     </div>
-                  ) : (
-                    <div className="no-matches">No matches!</div>
-                  )}
+                    <div className="result-path">File: {r.filename}</div>
+                    <div className="result-score">Score: {r.score.toFixed(4)}</div>
+                  </div>
                 </li>
               );
             })}
