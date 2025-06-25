@@ -8,7 +8,7 @@ hiddenimports = [
     'sentence_transformers', 'transformers', 'torch', 'numpy', 'docx', 'bs4',
     'sklearn', 'pytesseract', 'PIL', 'pdfplumber', 'scipy.sparse', 'scipy._cyutility',
     'scipy.special._cdflib', 'faiss', 'PyPDF2', 'lxml', 'pypdfium2', 'sklearn.metrics',
-    'transformers.generation', 'transformers.models.auto'
+    'transformers.generation', 'transformers.models.auto', 'fastapi.middleware.cors'
 ] + collect_submodules('parsers') + collect_submodules('scipy') + collect_submodules('faiss') + collect_submodules('backend') + collect_submodules('sklearn') + collect_submodules('transformers')
 
 binaries = [

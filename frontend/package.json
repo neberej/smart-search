@@ -1,10 +1,10 @@
 {
-  "name": "smart-search-frontend-ts",
+  "name": "smartsearch",
   "version": "1.0.0",
   "main": "electron-dist/main.js",
-  "description": "SmartSearch Desktop App",
-  "author": "Your Name",
-  "homepage": "./",
+  "description": "AI search for mac. ",
+  "author": "NT",
+  "homepage": "https://github.com/neberej/smart-search",
   "private": true,
   "dependencies": {
     "@types/react": "^18.0.0",

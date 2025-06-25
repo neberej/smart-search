@@ -28,7 +28,7 @@ const Search: React.FC<SearchProps> = ({
 
   useEffect(() => {
     inputRef.current?.focus();
-    const height = allResults.length > 0 ? 800 : 200;
+    const height = allResults.length > 0 ? 500 : 200;
     window.electron?.ipcRenderer?.send('resize-window', height);
   }, [allResults, preservedQuery]);
 
