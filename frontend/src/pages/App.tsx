@@ -5,32 +5,16 @@ import Toast from '../components/Toast';
 import { ReactComponent as SettingsIcon } from '../static/settings-icon.svg';
 import { ReactComponent as CloseIcon } from '../static/close-icon.svg';
 import { checkBackendHealth } from '../utils/api';
-
 import './App.scss';
 
-interface FileMatch {
-  filename: string;
-}
-
-interface EmbedMatch {
-  filename?: string;
-  highlighted?: string;
-  text?: string;
-  score: number;
-}
+interface FileMatch { filename: string }
+interface EmbedMatch { filename?: string; highlighted?: string; text?: string; score: number }
 
 const App: React.FC = () => {
   const [page, setPage] = useState<'search' | 'settings'>('search');
   const [toast, setToast] = useState('');
   const [preservedQuery, setPreservedQuery] = useState('');
-  const [preservedResults, setPreservedResults] = useState<{
-    fileMatches: FileMatch[];
-    embedMatches: EmbedMatch[];
-  }>({
-    fileMatches: [],
-    embedMatches: [],
-  });
-
+  const [preservedResults, setPreservedResults] = useState<{ fileMatches: FileMatch[]; embedMatches: EmbedMatch[] }>({ fileMatches: [], embedMatches: [] });
   const [backendReady, setBackendReady] = useState(false);
   const [backendError, setBackendError] = useState(false);
 
@@ -39,91 +23,57 @@ const App: React.FC = () => {
     const tryCheck = async () => {
       try {
         const res = await checkBackendHealth();
-        if (res.status === 200) {
-          setBackendReady(true);
-        } else {
-          throw new Error(`status ${res.status}`);
-        }
+        if (res.status === 200) setBackendReady(true);
+        else throw new Error(`status ${res.status}`);
       } catch {
-        attempts += 1;
-        if (attempts >= 10) {
-          setBackendError(true);
-        } else {
-          setTimeout(tryCheck, 1000);
-        }
+        attempts++;
+        if (attempts >= 10) setBackendError(true);
+        else setTimeout(tryCheck, 1000);
       }
     };
     tryCheck();
   }, []);
 
-  const goBackToSearch = () => setPage('search');
-
   const renderLoader = () => (
     <div className="container">
-      <div className="titlebar">
-        <div className="drag-region" />
-        <div className="topbar-buttons-container">
-          <button
-            className="close-fab"
-            onClick={() => (window as any).electron?.closeApp()}
-            aria-label="Close"
-          >
-            <CloseIcon />
-          </button>
-        </div>
-      </div>
+      <div className="titlebar"><div className="drag-region"/><div className="topbar-buttons-container">
+        <button className="close-fab" onClick={() => (window as any).electron?.closeApp()} aria-label="Close"><CloseIcon/></button>
+      </div></div>
       <div className="main-content waiting">
-        {backendError ? (
-          <p>Backend failed to start!.</p>
-        ) : (
-          <>
-            <div className="spinner" />
-            <p>Waiting for backend to start...</p>
-          </>
-        )}
+        {backendError ? <p>Backend failed to start after 10 attempts.</p> : <>
+          <div className="spinner"/>
+          <p>Waiting for backend to start...</p>
+        </>}
       </div>
     </div>
   );
 
   if (!backendReady) return renderLoader();
 
+  const goBack = () => setPage('search');
+
   return (
     <div className="container">
       <div className="titlebar">
-        <div className="drag-region" />
+        <div className="drag-region"/>
         <div className="topbar-buttons-container">
-          <button
-            className="settings-fab"
-            onClick={() => setPage(page === 'settings' ? 'search' : 'settings')}
-            aria-label="Settings"
-          >
-            <SettingsIcon />
+          <button className="settings-fab" onClick={() => setPage(p => p === 'settings' ? 'search' : 'settings')} aria-label="Settings">
+            <SettingsIcon/>
           </button>
-          <button
-            className="close-fab"
-            onClick={() => (window as any).electron?.closeApp()}
-            aria-label="Close"
-          >
-            <CloseIcon />
+          <button className="close-fab" onClick={() => (window as any).electron?.closeApp()} aria-label="Close">
+            <CloseIcon/>
           </button>
         </div>
       </div>
-
       <div className="main-content">
         {page === 'search' ? (
-          <Search
-            setToast={setToast}
-            preservedQuery={preservedQuery}
-            setPreservedQuery={setPreservedQuery}
-            preservedResults={preservedResults}
-            setPreservedResults={setPreservedResults}
-          />
+          <Search setToast={setToast} preservedQuery={preservedQuery} setPreservedQuery={setPreservedQuery}
+                  preservedResults={preservedResults} setPreservedResults={setPreservedResults} />
         ) : (
-          <Settings setToast={setToast} goBack={goBackToSearch} />
+          <Settings setToast={setToast} goBack={goBack}/>
         )}
       </div>
-
-      <Toast message={toast} setToast={setToast} />
+      <Toast message={toast} setToast={setToast}/>
     </div>
   );
 };

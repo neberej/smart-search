@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain } from 'electron';
 import * as path from 'path';
 import { startBackend, stopBackend, killPort } from './backendLauncher';
 
@@ -6,10 +6,8 @@ let mainWindow: BrowserWindow | null = null;
 
 const createWindow = async () => {
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 500,
-    frame: false,
-    center: true,
+    width: 800, height: 500,
+    frame: false, center: true, show: false,
     title: 'SmartSearch',
     icon: path.join(__dirname, '../build/icon.icns'),
     webPreferences: {
@@ -17,18 +15,21 @@ const createWindow = async () => {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    show: false,
   });
-
   mainWindow.setMenuBarVisibility(false);
+  await mainWindow.loadFile(path.join(app.getAppPath(), 'build', 'index.html'));
 
-  const indexHtmlPath = path.join(app.getAppPath(), 'build', 'index.html');
-  await mainWindow.loadFile(indexHtmlPath);
-  mainWindow.show();
-
-  if (!app.isPackaged) {
-    mainWindow.webContents.openDevTools();
-  }
+  // register global shortcut (CmdOrCtrl+Space)
+  globalShortcut.register('CommandOrControl+Space', () => {
+    if (mainWindow) {
+      if (mainWindow.isVisible()) {
+        mainWindow.hide();
+      } else {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    }
+  });
 
   ipcMain.on('app/close', () => {
     stopBackend();
@@ -36,7 +37,7 @@ const createWindow = async () => {
     app.quit();
   });
 
-  ipcMain.on('resize-window', (_event, height: number) => {
+  ipcMain.on('resize-window', (_e, height: number) => {
     if (mainWindow) {
       const [width] = mainWindow.getSize();
       mainWindow.setSize(width, height, true);
@@ -45,10 +46,8 @@ const createWindow = async () => {
 };
 
 app.whenReady().then(() => {
-  // Ensure clean port state
   killPort(8001);
   killPort(3000);
-
   startBackend();
   createWindow();
 });
@@ -60,4 +59,8 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
