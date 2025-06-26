@@ -73,7 +73,7 @@ const Search: React.FC<SearchProps> = ({
     return Array.from(map.entries()).map(([filename, chunks]) => ({ filename, chunks }));
   }, [embedMatches]);
 
-  const allResults = [...groupedFileMatches, ...embedMatches];
+  const allResults = useMemo(() => [...groupedFileMatches, ...embedMatches], [groupedFileMatches, embedMatches]);
 
   const fileNamesDisplayMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -116,7 +116,9 @@ const Search: React.FC<SearchProps> = ({
   useEffect(() => {
     const items = listRef.current?.querySelectorAll<HTMLLIElement>('.result-item');
     const el = items?.[selectedIndex];
-    if (el) el.scrollIntoView({ block: 'nearest' });
+    if (el && !el.classList.contains('in-view')) {
+      el.scrollIntoView({ block: 'nearest' });
+    }
   }, [selectedIndex]);
 
   // Global key listener
@@ -180,7 +182,8 @@ const Search: React.FC<SearchProps> = ({
   };
 
   const handleSearch = async () => {
-    const trimmed = preservedQuery.trim();
+    const rawInput = inputRef.current?.value ?? preservedQuery ?? '';
+    const trimmed = rawInput.trim();
     if (!trimmed) {
       clearSearch();
       return;
@@ -249,7 +252,7 @@ const Search: React.FC<SearchProps> = ({
           <ul ref={listRef} className="results-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {groupedFileMatches.map((m, i) => (
               <li
-                key={`folder-${m.folder}`}
+                key={`folder-${m.folder}-${m.count}`}
                 className={`result-item ${selectedIndex === i ? 'selected' : ''}`}
                 tabIndex={-1}
                 onClick={() => handleOpenFolder(m.folder)}

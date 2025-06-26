@@ -8,7 +8,7 @@ import { ReactComponent as MinimizeIcon } from '../static/minimize-icon.svg';
 import { checkBackendHealth } from '../utils/api';
 import './App.scss';
 
-interface FileMatch { filename: string }
+interface FileMatch { filename: string, folder: string }
 interface EmbedMatch { filename?: string; highlighted?: string; text?: string; score: number }
 
 const App: React.FC = () => {
