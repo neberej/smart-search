@@ -47,6 +47,11 @@ const Settings: React.FC<SettingsProps> = ({ setToast, goBack }) => {
     setLoading(false);
   };
 
+  const handleRestart = () => {
+    setToast('Restarting app...');
+    window.electron?.ipcRenderer.send('app/restart');
+  };
+
   const renderInput = (
     label: string,
     key: keyof typeof config,
@@ -110,6 +115,10 @@ const Settings: React.FC<SettingsProps> = ({ setToast, goBack }) => {
           disabled={loading}
         >
           {loading ? 'Indexing...' : 'Run Indexing'}
+        </button>
+        &nbsp;&nbsp;&nbsp;
+        <button className="index-button red" onClick={handleRestart}>
+          Restart App
         </button>
       </div>
     </div>

@@ -1,11 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { runSearch, openFolder } from '../utils/api';
 import './Search.scss';
 import { ReactComponent as FolderIcon } from '../static/folder-icon.svg';
 
-interface FileMatch { filename: string }
-interface EmbedMatch { filename?: string; highlighted?: string; text?: string; score: number }
-interface PreservedResults { fileMatches: FileMatch[]; embedMatches: EmbedMatch[] }
+interface FileMatch {
+  filename: string;
+  folder: string;
+}
+interface EmbedGroup {
+  filename: string;
+  chunks: EmbedMatch[];
+}
+interface EmbedMatch {
+  filename?: string;
+  highlighted?: string;
+  text?: string;
+  score: number;
+  chunk_id?: any
+}
+interface PreservedResults {
+  fileMatches: FileMatch[];
+  embedMatches: EmbedMatch[];
+}
+interface FolderGroup {
+  folder: string;
+  count: number;
+}
 
 interface SearchProps {
   setToast: (msg: string) => void;
@@ -16,7 +36,11 @@ interface SearchProps {
 }
 
 const Search: React.FC<SearchProps> = ({
-  setToast, preservedQuery, setPreservedQuery, preservedResults, setPreservedResults
+  setToast,
+  preservedQuery,
+  setPreservedQuery,
+  preservedResults,
+  setPreservedResults,
 }) => {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -26,7 +50,29 @@ const Search: React.FC<SearchProps> = ({
   const listRef = useRef<HTMLUListElement>(null);
 
   const { fileMatches, embedMatches } = preservedResults;
-  const allResults = [...fileMatches, ...embedMatches];
+
+  // Group file matches by folder
+  const groupedFileMatches: FolderGroup[] = useMemo(() => {
+    const folderMap = new Map<string, number>();
+    for (const { folder } of fileMatches) {
+      folderMap.set(folder, (folderMap.get(folder) || 0) + 1);
+    }
+    return Array.from(folderMap.entries()).map(([folder, count]) => ({ folder, count }));
+  }, [fileMatches]);
+
+  const groupedEmbedMatches: EmbedGroup[] = useMemo(() => {
+    const map = new Map<string, EmbedMatch[]>();
+    for (const embed of embedMatches) {
+      if (!embed.filename) continue;
+      if (!map.has(embed.filename)) {
+        map.set(embed.filename, []);
+      }
+      map.get(embed.filename)!.push(embed);
+    }
+    return Array.from(map.entries()).map(([filename, chunks]) => ({ filename, chunks }));
+  }, [embedMatches]);
+
+  const allResults = [...groupedFileMatches, ...embedMatches];
 
   // Focus input on load
   useEffect(() => {
@@ -68,20 +114,24 @@ const Search: React.FC<SearchProps> = ({
           handleSearch();
         } else {
           const item = allResults[selectedIndex];
-          if (item?.filename) handleOpenFolder(item.filename);
+          if ('folder' in item) {
+            handleOpenFolder(item.folder);
+          } else if ('filename' in item && item.filename) {
+            handleOpenFolder(item.filename);
+          }
         }
         return;
       }
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex(i => Math.min(i + 1, allResults.length - 1));
+        setSelectedIndex((i) => Math.min(i + 1, allResults.length - 1));
         return;
       }
 
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex(i => Math.max(i - 1, 0));
+        setSelectedIndex((i) => Math.max(i - 1, 0));
         return;
       }
 
@@ -120,9 +170,7 @@ const Search: React.FC<SearchProps> = ({
         embedMatches: res.data.embedMatch || [],
       });
       setSelectedIndex(0);
-
-      // Blur input after search so arrow keys work + prevent Enter glitch
-      inputRef.current?.blur();
+      inputRef.current?.blur(); // let arrow keys work
     } catch (e: any) {
       setToast('Search failed: ' + (e.message || 'Unknown error'));
     }
@@ -133,6 +181,7 @@ const Search: React.FC<SearchProps> = ({
   const handleOpenFolder = async (filePath: string) => {
     if (!filePath) return;
     try {
+      console.log(filePath)
       await openFolder(filePath);
       window.electron?.ipcRenderer?.send('app/minimize');
     } catch (e: any) {
@@ -155,7 +204,11 @@ const Search: React.FC<SearchProps> = ({
           className="search-input"
           disabled={loading}
         />
-        {preservedQuery && <button className="clear-button" onClick={clearSearch}>×</button>}
+        {preservedQuery && (
+          <button className="clear-button" onClick={clearSearch}>
+            ×
+          </button>
+        )}
         <button className="search-button" onClick={handleSearch} disabled={loading}>
           {loading ? 'Searching...' : 'Search'}
         </button>
@@ -168,21 +221,21 @@ const Search: React.FC<SearchProps> = ({
       {allResults.length > 0 && (
         <div className="results-section">
           <ul ref={listRef} className="results-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            {fileMatches.map((m, i) => (
+            {groupedFileMatches.map((m, i) => (
               <li
-                key={i}
+                key={`folder-${m.folder}`}
                 className={`result-item ${selectedIndex === i ? 'selected' : ''}`}
                 tabIndex={-1}
-                onClick={() => handleOpenFolder(m.filename)}
+                onClick={() => handleOpenFolder(m.folder)}
               >
                 <div className="result-card">
                   <div className="result-header">
-                    <div className="result-text">File: {m.filename}</div>
+                    <div className="result-text">Folder: {m.folder} ({m.count} files)</div>
                     <button
                       className="open-folder-btn"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleOpenFolder(m.filename);
+                        handleOpenFolder(m.folder);
                       }}
                     >
                       <FolderIcon />
@@ -191,39 +244,47 @@ const Search: React.FC<SearchProps> = ({
                 </div>
               </li>
             ))}
-            {embedMatches.map((r, idx) => {
-              const gi = fileMatches.length + idx;
-              return (
-                <li
-                  key={gi}
-                  className={`result-item ${selectedIndex === gi ? 'selected' : ''}`}
-                  tabIndex={-1}
-                  onClick={() => r.filename && handleOpenFolder(r.filename)}
-                >
-                  <div className="result-card">
-                    <div className="result-header">
-                      <div
-                        className="result-text"
-                        dangerouslySetInnerHTML={{
-                          __html: r.highlighted?.trim() || r.text || 'No text',
-                        }}
-                      />
-                      <button
-                        className="open-folder-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          r.filename && handleOpenFolder(r.filename);
-                        }}
-                      >
-                        <FolderIcon />
-                      </button>
+          {groupedEmbedMatches.map(({ filename, chunks }, idx) => {
+            const baseIndex = groupedFileMatches.length + idx;
+            // Pick first chunk (or best scoring chunk)
+            const firstChunk = chunks[0]; // or chunks.reduce((a,b) => a.score > b.score ? a : b)
+
+            return (
+              <li
+                key={`embed-group-${filename}`}
+                className={`result-item ${selectedIndex === baseIndex ? 'selected' : ''}`}
+                tabIndex={-1}
+                onClick={() => handleOpenFolder(filename)}
+              >
+                <div className="result-card">
+                  <div className="result-header">
+                    <div className="result-text">
+                      File: {filename} ({chunks.length} chunk{chunks.length > 1 ? 's' : ''})
                     </div>
-                    <div className="result-path">File: {r.filename}</div>
-                    <div className="result-score">Score: {r.score.toFixed(4)}</div>
+                    <button
+                      className="open-folder-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenFolder(filename);
+                      }}
+                    >
+                      <FolderIcon />
+                    </button>
                   </div>
-                </li>
-              );
-            })}
+
+                  <div
+                    className="result-snippet"
+                    dangerouslySetInnerHTML={{
+                      __html: firstChunk.highlighted?.trim() || firstChunk.text || 'No text',
+                    }}
+                  />
+                  <div className="result-score">Score: {firstChunk.score.toFixed(4)}</div>
+                </div>
+              </li>
+            );
+          })}
+
+
           </ul>
         </div>
       )}

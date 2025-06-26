@@ -110,9 +110,14 @@ def search(query_embedding: np.ndarray, config: Dict, query: str = "", top_k: in
                 path = item.get('filename', '')
                 if not path:
                     continue
-                if query_lower in os.path.basename(path).lower() or re.fullmatch(query_lower, os.path.basename(path), flags=re.IGNORECASE):
+                relative_path = os.path.relpath(path, config["source_folder"])
+                if query_lower in relative_path.lower() or query_lower in os.path.basename(path).lower():
                     if path not in seen_files:
-                        file_matches.append({"filename": os.path.abspath(path)})
+                        abs_path = os.path.abspath(path)
+                        file_matches.append({
+                            "filename": abs_path,
+                            "folder": os.path.dirname(abs_path)
+                        })
                         seen_files.add(path)
         except Exception as e:
             logger.error(f"Error in file name search: {e}")

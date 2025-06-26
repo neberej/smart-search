@@ -79,7 +79,8 @@ def update_config(new_config: dict):
 
 @app.post("/open-folder")
 def open_folder(fp: FilePath):
-    folder = os.path.dirname(fp.path)
+    path = fp.path
+    folder = path if os.path.isdir(path) else os.path.dirname(path)
     if platform.system() == "Darwin":  # macOS
         subprocess.run(["open", folder])
     elif platform.system() == "Windows":

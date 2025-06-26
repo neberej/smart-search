@@ -1,20 +1,74 @@
+// backendLauncher.ts
 import fs from 'fs';
 import { spawn, ChildProcess, execSync } from 'child_process';
 import path from 'path';
 import { app } from 'electron';
 import net from 'net';
 
-let backendProcess: ChildProcess | null = null;
-
 // Log to /tmp/smartsearch.log (accessible location)
 const logFile = '/tmp/smartsearch.log';
-const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+let logStream = fs.createWriteStream(logFile, { flags: 'a' });
+const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10MB
+const LOG_RETENTION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-// Log to both console and file
-function logToFile(message: string) {
+let backendProcess: ChildProcess | null = null;
+
+// Export logToFile for use in main.ts
+export function logToFile(message: string) {
+  // Check log file size
+  try {
+    const stats = fs.statSync(logFile);
+    if (stats.size > MAX_LOG_SIZE) {
+      logStream.end();
+      const backupFile = `${logFile}.${Date.now()}`;
+      fs.renameSync(logFile, backupFile);
+      fs.writeFileSync(logFile, '');
+      logStream = fs.createWriteStream(logFile, { flags: 'a' });
+      logToFile(`[Electron] Log file rotated to ${backupFile}`);
+    }
+  } catch (error) {
+    console.error(`Failed to check/rotate log file: ${error}`);
+  }
+
   const timestampedMessage = `${new Date().toISOString()} ${message}\n`;
   logStream.write(timestampedMessage);
   console.log(message);
+}
+
+// Clean up old log files on startup
+function cleanupLogFile() {
+  try {
+    // Check main log file age
+    const stats = fs.statSync(logFile);
+    const now = Date.now();
+    if (now - stats.mtimeMs > LOG_RETENTION_MS) {
+      logStream.end();
+      fs.unlinkSync(logFile);
+      fs.writeFileSync(logFile, '');
+      logStream = fs.createWriteStream(logFile, { flags: 'a' });
+      logToFile('[Electron] Log file cleared due to age');
+    }
+
+    // Clean up rotated logs (smartsearch.log.*)
+    const tmpDir = path.dirname(logFile);
+    const files = fs.readdirSync(tmpDir);
+    const rotatedLogs = files.filter((file) => file.startsWith('smartsearch.log.') && !isNaN(Number(file.split('.').pop())));
+    for (const file of rotatedLogs) {
+      const filePath = path.join(tmpDir, file);
+      const fileStats = fs.statSync(filePath);
+      if (now - fileStats.mtimeMs > LOG_RETENTION_MS) {
+        fs.unlinkSync(filePath);
+        logToFile(`[Electron] Deleted old rotated log: ${filePath}`);
+      }
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      fs.writeFileSync(logFile, '');
+      logStream = fs.createWriteStream(logFile, { flags: 'a' });
+    } else {
+      console.error(`Failed to clean up log file: ${error}`);
+    }
+  }
 }
 
 export function killPort(port: number) {
@@ -37,15 +91,15 @@ export function killPort(port: number) {
 }
 
 export function startBackend() {
+  cleanupLogFile(); // Clean up log files on startup
+
   const PORT = 8001;
-  // Point to the actual binary inside the smartsearch-backend directory
   const backendDir = path.join(process.resourcesPath, 'backend', 'smartsearch-backend');
-  let exePath = path.join(backendDir, 'smartsearch-backend'); // Binary is likely here
+  let exePath = path.join(backendDir, 'smartsearch-backend');
   if (process.platform === 'win32') {
     exePath += '.exe';
   }
 
-  // Verify binary exists and is executable
   if (!fs.existsSync(exePath)) {
     logToFile(`[Electron] Backend binary not found at: ${exePath}`);
     throw new Error(`Backend binary missing`);
@@ -59,7 +113,6 @@ export function startBackend() {
     throw error;
   }
 
-  // Set executable permissions
   try {
     fs.chmodSync(exePath, 0o755);
     logToFile(`[Electron] Set execute permissions on backend binary: ${exePath}`);
@@ -70,16 +123,15 @@ export function startBackend() {
 
   logToFile(`[Electron] Launching backend from: ${exePath}`);
 
-  // Set environment for PyInstaller bundle
   const env = {
     ...process.env,
-    PYTHONPATH: backendDir // Point to backend directory for .dylib files
+    PYTHONPATH: backendDir,
   };
 
   backendProcess = spawn(exePath, [], {
     stdio: ['ignore', 'pipe', 'pipe'],
     env,
-    cwd: backendDir // Set working directory to backend folder
+    cwd: backendDir,
   });
 
   backendProcess.on('error', (err: NodeJS.ErrnoException) => {
@@ -98,13 +150,38 @@ export function startBackend() {
 
   backendProcess.on('close', (code) => {
     logToFile(`[Electron] Backend exited with code: ${code}`);
+    backendProcess = null;
   });
 }
 
-export function stopBackend() {
-  if (backendProcess) {
-    logToFile('[Electron] Stopping backend process...');
-    backendProcess.kill();
-    backendProcess = null;
+export async function stopBackend(): Promise<void> {
+  if (!backendProcess) {
+    logToFile('[Electron] No backend process to stop');
+    return;
   }
+
+  return new Promise((resolve, reject) => {
+    logToFile(`[Electron] Stopping backend process (PID: ${backendProcess?.pid})`);
+
+    backendProcess?.on('close', (code) => {
+      logToFile(`[Electron] Backend process (PID: ${backendProcess?.pid}) exited with code: ${code}`);
+      backendProcess = null;
+      resolve();
+    });
+
+    backendProcess?.on('error', (err) => {
+      logToFile(`[Electron] Error stopping backend process: ${err.message}`);
+      backendProcess = null;
+      reject(err);
+    });
+
+    backendProcess?.kill('SIGTERM');
+
+    setTimeout(() => {
+      if (backendProcess && backendProcess.pid) {
+        logToFile(`[Electron] Backend process (PID: ${backendProcess.pid}) did not exit, sending SIGKILL`);
+        backendProcess.kill('SIGKILL');
+      }
+    }, 2000);
+  });
 }
