@@ -35,6 +35,7 @@ interface SearchProps {
   setPreservedResults: (val: PreservedResults) => void;
 }
 
+
 const Search: React.FC<SearchProps> = ({
   setToast,
   preservedQuery,
@@ -73,6 +74,31 @@ const Search: React.FC<SearchProps> = ({
   }, [embedMatches]);
 
   const allResults = [...groupedFileMatches, ...embedMatches];
+
+  const fileNamesDisplayMap = useMemo(() => {
+    const map = new Map<string, string>();
+    const folderGroups = new Map<string, string[]>();
+
+    for (const { folder, filename } of fileMatches) {
+      const name = filename.split('/').pop() || filename;
+      if (!folderGroups.has(folder)) folderGroups.set(folder, []);
+      folderGroups.get(folder)!.push(name);
+    }
+
+    for (const [folder, names] of folderGroups.entries()) {
+      if (names.length === 1) {
+        map.set(folder, `${names[0]}`);
+      } else if (names.length === 2) {
+        map.set(folder, `${names[0]} and 1 more file`);
+      } else {
+        map.set(folder, `${names[0]} and ${names.length - 1} more files`);
+      }
+    }
+
+    return map;
+  }, [fileMatches]);
+
+  const getFileNamesDisplay = (folder: string) => fileNamesDisplayMap.get(folder) || '';
 
   // Focus input on load
   useEffect(() => {
@@ -230,7 +256,9 @@ const Search: React.FC<SearchProps> = ({
               >
                 <div className="result-card">
                   <div className="result-header">
-                    <div className="result-text">Folder: {m.folder} ({m.count} files)</div>
+                    <div className="result-text">
+                      Folder: {m.folder} ({getFileNamesDisplay(m.folder)})
+                    </div>
                     <button
                       className="open-folder-btn"
                       onClick={(e) => {
@@ -247,7 +275,7 @@ const Search: React.FC<SearchProps> = ({
           {groupedEmbedMatches.map(({ filename, chunks }, idx) => {
             const baseIndex = groupedFileMatches.length + idx;
             // Pick first chunk (or best scoring chunk)
-            const firstChunk = chunks[0]; // or chunks.reduce((a,b) => a.score > b.score ? a : b)
+            const firstChunk = chunks[0];
 
             return (
               <li
@@ -278,7 +306,7 @@ const Search: React.FC<SearchProps> = ({
                       __html: firstChunk.highlighted?.trim() || firstChunk.text || 'No text',
                     }}
                   />
-                  <div className="result-score">Score: {firstChunk.score.toFixed(4)}</div>
+                  {/* <div className="result-score">Score: {firstChunk.score.toFixed(4)}</div> */}
                 </div>
               </li>
             );
