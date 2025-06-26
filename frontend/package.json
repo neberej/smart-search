@@ -2,8 +2,8 @@
   "name": "smartsearch",
   "version": "1.0.0",
   "main": "electron-dist/main.js",
-  "description": "AI search for mac. ",
-  "author": "NT",
+  "description": "A fast-efficient search for mac.",
+  "author": "NT (https://github.com/neberej/smart-search)",
   "homepage": "./",
   "private": true,
   "dependencies": {

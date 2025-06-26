@@ -31,12 +31,12 @@ const Search: React.FC<SearchProps> = ({
   // Focus input on load
   useEffect(() => {
     inputRef.current?.focus();
-    window.electron?.ipcRenderer?.send('resize-window', 200);
+    window.electron?.ipcRenderer?.send('resize-window', 165);
   }, []);
 
   // Resize on results update
   useEffect(() => {
-    const height = allResults.length > 0 ? 500 : 200;
+    const height = allResults.length > 0 ? 500 : 165;
     window.electron?.ipcRenderer?.send('resize-window', height);
   }, [allResults.length]);
 
@@ -100,7 +100,7 @@ const Search: React.FC<SearchProps> = ({
     setHasSearched(false);
     setSelectedIndex(0);
     inputRef.current?.focus();
-    window.electron?.ipcRenderer?.send('resize-window', 200);
+    window.electron?.ipcRenderer?.send('resize-window', 165);
   };
 
   const handleSearch = async () => {

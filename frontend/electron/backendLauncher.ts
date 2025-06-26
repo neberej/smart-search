@@ -24,8 +24,7 @@ export function killPort(port: number) {
     for (const pid of result) {
       const cmd = execSync(`ps -p ${pid} -o command=`).toString().trim();
 
-      // Add safe checks to match only your app/backend
-      if (cmd.includes('smartsearch-backend') || cmd.includes('Electron')) {
+      if (/smartsearch-backend|electron/i.test(cmd)) {
         logToFile(`[Electron] Killing PID ${pid} using port ${port}: ${cmd}`);
         process.kill(parseInt(pid), 'SIGKILL');
       } else {
