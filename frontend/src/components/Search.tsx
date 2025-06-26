@@ -290,7 +290,7 @@ const Search: React.FC<SearchProps> = ({
                 <div className="result-card">
                   <div className="result-header">
                     <div className="result-text">
-                      File: {filename} ({chunks.length} chunk{chunks.length > 1 ? 's' : ''})
+                      File: {filename} ({chunks.length} match{chunks.length > 1 ? 'es' : ''})
                     </div>
                     <button
                       className="open-folder-btn"

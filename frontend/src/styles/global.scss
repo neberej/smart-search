@@ -12,13 +12,16 @@ hr {
   border: 0.2px solid #ddd;
 }
 
+.shrink-p {
+   margin: 0;
+}
 .progress {
    height: 4.5px;
    width: 145.6px;
    background: linear-gradient(#26A69A 0 0), #dbdcef;
    background-size: 0% 100%;
    background-repeat: no-repeat;
-   animation: progress-animation 6s infinite;
+   animation: progress-animation 8s infinite;
 }
 
 @keyframes progress-animation {

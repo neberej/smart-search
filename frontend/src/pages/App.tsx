@@ -31,7 +31,7 @@ const App: React.FC = () => {
           setTimeout(() => {
             setShowReadyMessage(false);
             window.electron?.ipcRenderer?.send('app/minimize');
-          }, 2500);
+          }, 3000);
         } else {
           throw new Error(`status ${res.status}`);
         }
@@ -71,7 +71,7 @@ const App: React.FC = () => {
       </div></div>
       <div className="main-content waiting">
         {backendError ? <p><span className="failed-icon"/>Failed to start the backend!</p> : <>
-          <div className="spinner"/>
+          <p className="shrink-p">Loading....</p>
           <p className="progress"></p>
         </>}
       </div>
@@ -86,14 +86,19 @@ const App: React.FC = () => {
       </div></div>
       <div className="main-content waiting">
         <div className="spinner"/>
-        <p><strong>SmartSearch is ready!</strong></p>&nbsp;&nbsp;
-        <p>Press <kbd>Ctrl</kbd> + <kbd>Space</kbd> to start searching.</p>
+        <p className="shrink-p"><strong>SmartSearch is ready! Press <kbd>Ctrl</kbd> + <kbd>Space</kbd> to start searching. </strong></p>&nbsp;&nbsp;
+        <p>Once in search,</p>
+        <p className="shrink-p"><kbd>Backspace</kbd> to go back to input.</p>
+        <p className="shrink-p"><kbd>Esc</kbd> to close.</p>
+        <p className="shrink-p"><kbd>Top/Bottom</kbd> arrows to navigate.</p>
+        <p className="shrink-p"><kbd>Enter</kbd> to open folder.</p>
+        <p>This dialog will auto close soon!</p>
       </div>
     </div>
   );
 
   if (!backendReady) return renderLoader();
-  if (showReadyMessage) return renderReadyMessage();
+   if (showReadyMessage) return renderReadyMessage();
 
   return (
     <div className="container">
