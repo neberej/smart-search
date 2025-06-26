@@ -2,6 +2,11 @@
 Index your files for quick search. Runs locally!
 
 
+
+[Demo](https://github.com/user-attachments/assets/aed054e0-a91f-4599-ac4c-f6fffe2a3d85)
+
+
+
 Models used:
 - PyPDF2
 - pytesseract
