@@ -2,7 +2,12 @@ import React, { useEffect, useState } from 'react';
 import './Settings.scss';
 import { getConfig, updateConfig, runReindex } from '../utils/api';
 
-const Settings: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) => {
+interface SettingsProps {
+  setToast: (msg: string) => void;
+  goBack: () => void;
+}
+
+const Settings: React.FC<SettingsProps> = ({ setToast, goBack }) => {
   const [config, setConfig] = useState({
     source_folder: '',
     index_folder: '',
@@ -42,6 +47,11 @@ const Settings: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) =
     setLoading(false);
   };
 
+  const handleRestart = () => {
+    setToast('Restarting app...');
+    window.electron?.ipcRenderer.send('app/restart');
+  };
+
   const renderInput = (
     label: string,
     key: keyof typeof config,
@@ -63,7 +73,7 @@ const Settings: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) =
             handleInputChange(
               key,
               type === 'array'
-                ? e.target.value.split(', ').map((ext) => ext.trim())
+                ? e.target.value.split(',').map((ext) => ext.trim())
                 : type === 'number'
                 ? parseFloat(e.target.value) || 0
                 : e.target.value
@@ -78,6 +88,10 @@ const Settings: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) =
 
   return (
     <div className="settings-container">
+      {/* Back button at top left */}
+      <button className="back-btn" onClick={goBack}>
+        ← Back to Search
+      </button>
       <h3 className="settings-title">Update Config</h3>
       <div className="input-container">
         {renderInput('Source Folder', 'source_folder', 'text')}
@@ -93,7 +107,7 @@ const Settings: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) =
           Save Config
         </button>
       </div>
-      <hr/>
+      <hr />
       <div className="button-container left">
         <button
           className="index-button"
@@ -101,6 +115,10 @@ const Settings: React.FC<{ setToast: (msg: string) => void }> = ({ setToast }) =
           disabled={loading}
         >
           {loading ? 'Indexing...' : 'Run Indexing'}
+        </button>
+        &nbsp;&nbsp;&nbsp;
+        <button className="index-button red" onClick={handleRestart}>
+          Restart App
         </button>
       </div>
     </div>

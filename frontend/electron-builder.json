@@ -1,0 +1,35 @@
+{
+  "appId": "com.example.smartsearch",
+  "productName": "SmartSearch",
+  "directories": {
+    "output": "../dist_electron"
+  },
+  "files": [
+    "electron-dist/**/*",
+    "build/**/*",
+    {
+      "from": "../dist-app/backend/",
+      "to": "backend/",
+      "filter": ["**/*"]
+    },
+    {
+      "from": "../dist-app/package.json",
+      "to": "package.json"
+    },
+    {
+      "from": "./electron/loading.html",
+      "to": "loading.html"
+    }
+  ],
+  "extraResources": [
+    {
+      "from": "../dist-app/backend/smartsearch-backend",
+      "to": "backend/smartsearch-backend"
+    }
+  ],
+  "mac": {
+    "target": "dmg",
+    "icon": "build/icon.icns"
+  },
+  "extends": null
+}
