@@ -1,23 +1,24 @@
 
 Index your files for quick search. Runs locally!
 
+
+Models used:
+- PyPDF2
+- pytesseract
+- beautifulsoup4
+- python-docx
+
 ---
 
-# DEV
+## Development
 
 There are two portions - backend which does heavy lifting creating embeddings and frontend which communicates using rest APIs.
 
-### Backend:
+### Install:
 
-pip3 install fastapi uvicorn python-docx beautifulsoup4 sentence-transformers scikit-learn pytesseract pillow pdfplumber
-brew install tesseract
-chmod +x start-backend.sh
-
-### Frontend:
-
-npm install
-chmod +x start-frontend.sh
-
+```
+./install.sh
+```
 
 ### Run
 
@@ -29,14 +30,24 @@ chmod +x start-frontend.sh
 ---
 
 
-# BUILD - PROD BUILD
+## Build (for prod/usage)
 
-Prod build creates a .dmg file that can be installed.
+The following build process creates a .dmg file that can be installed.
 
 ```
 ./build.sh
 ```
 
+outputs into dist_electron/ folder.
+
+Run/install it!
+
 And then, Ctrl + Space or Cmd + Space shows/hides the search!
 
+### Additional shortcuts (when in search):
 
+- Backspace to go back to input
+- Esc to close
+- Top/Bottom arrows to navigate and Enter to open folder
+
+        
