@@ -1,10 +1,15 @@
 
-Index your files for quick search. Runs locally!
+### Index your files for quick search. Runs locally!
+
+- Embeddings and Similarity search within pdf, images, docx etc. 
+- A nice UI (Ctrl + Space) like Spotlight Search to search from anywhere.
+- Settings page to run indexing, set source folder, index folder, similarity score etc.
 
 
+
+---
 
 [Demo](https://github.com/user-attachments/assets/aed054e0-a91f-4599-ac4c-f6fffe2a3d85)
-
 
 
 Models used:
@@ -55,4 +60,4 @@ And then, Ctrl + Space or Cmd + Space shows/hides the search!
 - Esc to close
 - Top/Bottom arrows to navigate and Enter to open folder
 
-        
+
