@@ -1,10 +1,15 @@
 
 ### Index your files for quick search. Runs locally!
 
+
+![image](https://github.com/user-attachments/assets/f9bc38e2-3cd6-43df-a72e-6c7c8d971d9e)
+
+
+Features:
+
 - Embeddings and Similarity search within pdf, images, docx etc. 
 - A nice UI (Ctrl + Space) like Spotlight Search to search from anywhere.
 - Settings page to run indexing, set source folder, index folder, similarity score etc.
-
 
 
 ---
